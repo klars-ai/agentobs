@@ -1,0 +1,631 @@
+/*
+ * AgentObs landing page.
+ *
+ * Shares the dashboard's design tokens (src/server/public/app.css) so the
+ * marketing page and the product look like one thing. Colors come from the
+ * same validated palette; light values on bare :root, dark redefined under
+ * both the OS media query and an explicit [data-theme] scope.
+ */
+
+:root {
+  color-scheme: light;
+
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #898781;
+  --grid: #e1e0d9;
+  --border: rgba(11, 11, 11, 0.1);
+  --raised: rgba(11, 11, 11, 0.04);
+
+  --series-1: #2a78d6;
+  --series-3: #1baf7a;
+  --status-critical: #d03b3b;
+
+  --radius: 12px;
+  --radius-sm: 7px;
+  --shadow: 0 1px 2px rgba(11, 11, 11, 0.05), 0 12px 32px -16px rgba(11, 11, 11, 0.16);
+  --font: ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #898781;
+    --grid: #2c2c2a;
+    --border: rgba(255, 255, 255, 0.1);
+    --raised: rgba(255, 255, 255, 0.05);
+    --series-1: #3987e5;
+    --series-3: #199e70;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 32px -16px rgba(0, 0, 0, 0.7);
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--text-primary);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--series-1);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 0.9em;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  background: var(--surface);
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  z-index: 10;
+}
+.skip-link:focus {
+  left: 12px;
+  top: 12px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--series-1);
+  outline-offset: 2px;
+}
+
+/* ---------- nav ---------- */
+
+.nav {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--text-primary);
+}
+
+.brand-mark {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: linear-gradient(135deg, var(--series-1), var(--series-3));
+}
+
+.brand-name {
+  font-weight: 660;
+  letter-spacing: -0.01em;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  font-size: 14px;
+}
+
+.nav-links a {
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+.nav-links a:hover {
+  color: var(--text-primary);
+}
+
+.nav-cta {
+  border: 1px solid var(--border);
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+/* ---------- hero ---------- */
+
+.hero {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 64px 24px 40px;
+  text-align: center;
+}
+
+.eyebrow {
+  margin: 0 0 18px;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(2.2rem, 6vw, 3.9rem);
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+  font-weight: 690;
+}
+
+.lede {
+  margin: 20px auto 0;
+  max-width: 620px;
+  font-size: clamp(1rem, 2.2vw, 1.16rem);
+  color: var(--text-secondary);
+}
+
+.install {
+  margin: 34px auto 0;
+  max-width: 480px;
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.install code {
+  flex: 1;
+  padding: 13px 16px;
+  text-align: left;
+  font-size: 14px;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.install button {
+  appearance: none;
+  border: 0;
+  border-left: 1px solid var(--border);
+  background: var(--raised);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0 18px;
+  cursor: pointer;
+  min-width: 92px;
+}
+.install button:hover {
+  color: var(--text-primary);
+}
+
+.install-note {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* ---------- strip ---------- */
+
+.strip {
+  max-width: 1080px;
+  margin: 26px auto 0;
+  padding: 0 24px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  text-align: center;
+}
+
+.strip div {
+  padding: 18px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.strip strong {
+  display: block;
+  font-size: 15px;
+}
+
+.strip span {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+@media (max-width: 720px) {
+  .strip {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- sections ---------- */
+
+.section {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 64px 24px 0;
+}
+
+.section h2 {
+  margin: 0 0 12px;
+  font-size: clamp(1.5rem, 3.4vw, 2.1rem);
+  letter-spacing: -0.02em;
+  font-weight: 670;
+}
+
+.section-lede {
+  margin: 0 0 28px;
+  max-width: 660px;
+  color: var(--text-secondary);
+}
+
+/* ---------- steps ---------- */
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 18px;
+}
+
+.steps li {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  padding: 20px 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.step-n {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--series-1);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-weight: 660;
+}
+
+.steps h3 {
+  margin: 2px 0 10px;
+  font-size: 16px;
+  font-weight: 640;
+}
+
+.steps p {
+  margin: 10px 0 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.steps > li > div {
+  min-width: 0;
+  flex: 1;
+}
+
+pre {
+  margin: 0;
+  padding: 14px 16px;
+  background: var(--raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+
+pre code {
+  font-size: inherit;
+}
+
+.terminal {
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  margin-bottom: 34px;
+}
+
+.terminal .prompt {
+  color: var(--text-muted);
+}
+
+.terminal .bad {
+  color: var(--status-critical);
+  font-weight: 660;
+}
+
+/* ---------- cards ---------- */
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.cards article {
+  padding: 20px 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.cards h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 640;
+}
+
+.cards p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 860px) {
+  .cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- checks ---------- */
+
+.checks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+  max-width: 760px;
+}
+
+.checks li {
+  position: relative;
+  padding-left: 30px;
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+
+.checks li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  top: -1px;
+  color: var(--series-3);
+  font-weight: 700;
+}
+
+.checks strong {
+  color: var(--text-primary);
+  font-weight: 620;
+}
+
+.cta-row {
+  margin: 34px 0 0;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  display: inline-block;
+  padding: 11px 22px;
+  border-radius: var(--radius-sm);
+  background: var(--series-1);
+  color: #fff;
+  text-decoration: none;
+  font-size: 14.5px;
+  font-weight: 620;
+  border: 1px solid transparent;
+}
+
+.btn:hover {
+  filter: brightness(1.06);
+}
+
+.btn-ghost {
+  background: var(--surface);
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+
+/* ---------- footer ---------- */
+
+.footer {
+  max-width: 1080px;
+  margin: 72px auto 0;
+  padding: 26px 24px 44px;
+  border-top: 1px solid var(--grid);
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 13.5px;
+  color: var(--text-muted);
+}
+
+.footer a {
+  color: var(--text-secondary);
+}
+
+/* ---------- product screenshot ---------- */
+
+.shot {
+  margin: 54px auto 0;
+  max-width: 1000px;
+}
+
+/*
+ * A browser-chrome frame around the screenshot. It reads as "this is a real
+ * running app" rather than a marketing illustration, which is the whole
+ * reason the image is here.
+ */
+.shot-frame {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow:
+    0 2px 4px rgba(11, 11, 11, 0.04),
+    0 24px 64px -24px rgba(11, 11, 11, 0.28);
+  overflow: hidden;
+}
+
+.shot-bar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--raised);
+}
+
+.shot-bar span {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--grid);
+}
+
+.shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.shot figcaption {
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .shot-frame {
+    box-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.4),
+      0 24px 64px -24px rgba(0, 0, 0, 0.8);
+  }
+}
+
+/* ---------- narrow screens ---------- */
+
+/*
+ * The page must never scroll horizontally. The nav's link row and the
+ * install command are the two things that push past the viewport on a
+ * phone, so both are given explicit narrow-screen behaviour rather than
+ * relying on flex-wrap alone.
+ */
+@media (max-width: 760px) {
+  .nav {
+    padding: 16px 18px;
+    justify-content: center;
+    gap: 12px;
+  }
+
+  .nav-links {
+    width: 100%;
+    justify-content: center;
+    gap: 16px;
+    font-size: 13.5px;
+    flex-wrap: wrap;
+  }
+
+  .hero {
+    padding: 36px 18px 28px;
+  }
+
+  h1 {
+    /* The hard <br> is a desktop line break; let it reflow naturally here. */
+    font-size: clamp(1.9rem, 8.5vw, 2.6rem);
+  }
+
+  .desktop-break {
+    display: none;
+  }
+
+  .install {
+    max-width: 100%;
+  }
+
+  .install code {
+    font-size: 12.5px;
+    padding: 12px;
+  }
+
+  .install button {
+    min-width: 74px;
+    padding: 0 12px;
+  }
+
+  .section,
+  .strip {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .section {
+    padding-top: 44px;
+  }
+
+  .shot {
+    margin-top: 34px;
+  }
+
+  .steps li {
+    padding: 16px 16px;
+    gap: 14px;
+  }
+
+  .footer {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+}
+
+/* Belt and braces: no element may create a horizontal scrollbar. */
+body {
+  overflow-x: hidden;
+}
+
+img,
+pre,
+table {
+  max-width: 100%;
+}

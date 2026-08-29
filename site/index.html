@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>AgentObs — see what your AI agents actually do</title>
+    <meta
+      name="description"
+      content="Observability and guardrails for AI coding agents. See every tool call, token, and dollar your agents spend — and block the risky ones. Local-first, open source, no account required."
+    />
+    <link rel="canonical" href="https://agents.klars.ai/" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://agents.klars.ai/" />
+    <meta property="og:title" content="AgentObs — see what your AI agents actually do" />
+    <meta
+      property="og:description"
+      content="Every tool call, token, and dollar your AI coding agents spend. Plus guardrails that stop the risky ones. Local-first and open source."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128200;</text></svg>"
+    />
+    <link rel="stylesheet" href="/site.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="nav">
+      <a class="brand" href="/">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-name">AgentObs</span>
+      </a>
+      <nav class="nav-links">
+        <a href="#how">How it works</a>
+        <a href="#guardrails">Guardrails</a>
+        <a href="#privacy">Privacy</a>
+        <a class="nav-cta" href="https://github.com/klars-ai/agentobs">GitHub</a>
+      </nav>
+    </header>
+
+    <main id="main">
+      <section class="hero">
+        <p class="eyebrow">Open source · MIT</p>
+        <!--
+          The line break is a desktop typographic choice, not content. On
+          narrow screens CSS turns it into a plain space (see .hero h1 br)
+          rather than display:none, which would run the two words together.
+        -->
+        <h1>See what your AI agents <br class="desktop-break" />actually do.</h1>
+        <p class="lede">
+          Every tool call, token, and dollar your AI coding agents spend — on one dashboard.
+          Then set guardrails that stop the risky ones before they run.
+        </p>
+
+        <div class="install">
+          <code id="install-cmd">npm install -g @klars/agentobs</code>
+          <button type="button" id="copy-btn" aria-label="Copy install command">Copy</button>
+        </div>
+        <p class="install-note">
+          Requires Node 22.5+. Runs entirely on your machine — no account, no signup.
+        </p>
+
+        <figure class="shot">
+          <div class="shot-frame">
+            <div class="shot-bar" aria-hidden="true"><span></span><span></span><span></span></div>
+            <!--
+              Swap the screenshot with the viewer's theme. A light dashboard
+              embedded in a dark page reads as a stock image rather than the
+              app you are about to run; <picture> does this with no JS.
+            -->
+            <picture>
+              <source srcset="/dashboard-dark.png" media="(prefers-color-scheme: dark)" />
+              <img
+                src="/dashboard.png"
+                alt="The AgentObs dashboard: spend for the week, tool call and error-rate tiles, an activity chart, and tables of tools and sessions."
+                width="1360"
+                height="900"
+                loading="eager"
+                decoding="async"
+              />
+            </picture>
+          </div>
+          <figcaption>The local dashboard — cost, tool calls, errors and blocked calls at a glance.</figcaption>
+        </figure>
+      </section>
+
+      <section class="strip" aria-label="At a glance">
+        <div><strong>Local-first</strong><span>Nothing leaves your machine</span></div>
+        <div><strong>Zero config</strong><span>One command to start</span></div>
+        <div><strong>MIT licensed</strong><span>Read every line</span></div>
+      </section>
+
+      <section class="section" id="how">
+        <h2>Three commands</h2>
+        <ol class="steps">
+          <li>
+            <span class="step-n">1</span>
+            <div>
+              <h3>Install and initialise</h3>
+              <pre><code>npm install -g @klars/agentobs
+agentobs init</code></pre>
+              <p>
+                Prints a hook config block. Paste it into
+                <code>~/.claude/settings.json</code>.
+              </p>
+            </div>
+          </li>
+          <li>
+            <span class="step-n">2</span>
+            <div>
+              <h3>Open the dashboard</h3>
+              <pre><code>agentobs dashboard</code></pre>
+              <p>Runs at <code>127.0.0.1:4300</code>. Tool calls appear within seconds.</p>
+            </div>
+          </li>
+          <li>
+            <span class="step-n">3</span>
+            <div>
+              <h3>Add guardrails</h3>
+              <pre><code>agentobs policy init</code></pre>
+              <p>Blocks <code>rm -rf</code> and <code>curl | sh</code> out of the box.</p>
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <section class="section" id="guardrails">
+        <h2>Stop it before it runs</h2>
+        <p class="section-lede">
+          Guardrails are evaluated inside the same hook that does the logging, so a blocked
+          call never executes. Check exactly what a rule will do before it fires mid-task:
+        </p>
+        <pre class="terminal"><code><span class="prompt">$</span> agentobs policy test Bash "rm -rf ./build"
+
+  Tool       Bash
+  Input      rm -rf ./build
+  Decision   <span class="bad">BLOCK</span>
+  Rule       no-recursive-force-delete
+
+  This call would be BLOCKED before running.</code></pre>
+
+        <div class="cards">
+          <article>
+            <h3>Honest cost</h3>
+            <p>
+              A model missing from your pricing table shows <code>—</code>, never
+              <code>$0.00</code>. One wrong number and you stop trusting all of them.
+            </p>
+          </article>
+          <article>
+            <h3>Honest fidelity</h3>
+            <p>
+              Process-wrapped sessions are labelled <code>coarse</code>. The UI never implies
+              detail it doesn't have.
+            </p>
+          </article>
+          <article>
+            <h3>Fails open</h3>
+            <p>
+              A malformed policy degrades to allow-everything and says so. A guardrail that
+              wedges your agent is worse than none.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="privacy">
+        <h2>Privacy is the whole point</h2>
+        <p class="section-lede">
+          AgentObs sits in the middle of everything your agent does. That only works if it is
+          trustworthy by construction, not by promise.
+        </p>
+        <ul class="checks">
+          <li><strong>No network calls.</strong> No telemetry, no analytics, no account.</li>
+          <li>
+            <strong>Secrets are redacted before anything touches disk.</strong> AWS, Anthropic,
+            OpenAI, GitHub, GitLab, Slack, Stripe and Google keys, JWTs, PEM blocks,
+            <code>KEY=value</code> pairs, <code>Authorization:</code> headers and URL
+            credentials.
+          </li>
+          <li>
+            <strong>The redaction rules are unit-tested</strong> — the tests are the guarantee,
+            and they caught real leaks during development.
+          </li>
+          <li>
+            <strong>Uninstalling is <code>rm -rf ~/.agentobs</code>.</strong> That is the entire
+            footprint.
+          </li>
+        </ul>
+        <p class="cta-row">
+          <a class="btn" href="https://github.com/klars-ai/agentobs">Read the source</a>
+          <a class="btn btn-ghost" href="https://github.com/klars-ai/agentobs#readme">
+            Documentation
+          </a>
+        </p>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>
+        A <a href="https://klars.ai">Klars AI</a> project · MIT licensed
+      </span>
+      <span>
+        <a href="https://github.com/klars-ai/agentobs">GitHub</a>
+        ·
+        <a href="mailto:contact@klars.ai">contact@klars.ai</a>
+      </span>
+    </footer>
+
+    <script>
+      // Copy-to-clipboard for the install command. Kept inline and tiny -
+      // this page ships no JS bundle and needs no build step.
+      const btn = document.getElementById('copy-btn');
+      btn.addEventListener('click', async () => {
+        const text = document.getElementById('install-cmd').textContent.trim();
+        try {
+          await navigator.clipboard.writeText(text);
+          btn.textContent = 'Copied';
+        } catch {
+          // Clipboard API needs a secure context and can be blocked; say so
+          // rather than silently appearing to succeed.
+          btn.textContent = 'Copy failed';
+        }
+        setTimeout(() => (btn.textContent = 'Copy'), 1600);
+      });
+    </script>
+  </body>
+</html>
