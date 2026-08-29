@@ -1,0 +1,56 @@
+# Deploys to the single EC2 host (infra/aws/) over SSH.
+#
+# Manual trigger only. This box holds its own Postgres data on the root
+# volume, so an automatic deploy on every push to main is more risk than a
+# solo-operated product needs - run it deliberately.
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git ref to deploy
+        required: false
+        default: main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref }}
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Sync deployment files
+        run: |
+          scp docker-compose.yml Caddyfile Dockerfile .dockerignore \
+            ec2-user@${{ secrets.DEPLOY_HOST }}:/opt/agentobs/
+
+      - name: Rebuild and restart
+        run: |
+          ssh ec2-user@${{ secrets.DEPLOY_HOST }} << 'REMOTE'
+            set -euo pipefail
+            cd /opt/agentobs
+            git -C repo pull || git clone https://github.com/klars-ai/agentobs.git repo
+            docker compose build web
+            docker compose up -d
+            docker image prune -f
+          REMOTE
+
+      - name: Verify health
+        run: |
+          for i in $(seq 1 12); do
+            if curl -fsS "https://${{ secrets.DEPLOY_DOMAIN }}/api/health"; then
+              echo "healthy"; exit 0
+            fi
+            sleep 10
+          done
+          echo "health check failed after 2 minutes"; exit 1

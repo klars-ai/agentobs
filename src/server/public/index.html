@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>AgentObs</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128200;</text></svg>" />
+    <link rel="stylesheet" href="/app.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <div>
+          <h1>AgentObs</h1>
+          <p class="brand-sub">Agent observability &amp; control</p>
+        </div>
+      </div>
+
+      <div class="topbar-actions">
+        <div class="rangeset" role="group" aria-label="Time range">
+          <button type="button" data-range="today">Today</button>
+          <button type="button" data-range="7d" aria-pressed="true">7 days</button>
+          <button type="button" data-range="30d">30 days</button>
+          <button type="button" data-range="all">All</button>
+        </div>
+        <button type="button" id="theme-toggle" class="icon-btn" aria-label="Switch theme">
+          <span aria-hidden="true">◐</span>
+        </button>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- Hero: exactly one per view - the number this dashboard exists to report. -->
+      <section class="hero" aria-labelledby="hero-label">
+        <div>
+          <p class="hero-label" id="hero-label">Spend <span data-range-label>this week</span></p>
+          <p class="hero-figure" id="hero-cost">—</p>
+          <p class="hero-note" id="hero-note">No activity recorded yet.</p>
+        </div>
+        <dl class="hero-side">
+          <div><dt>Tokens in</dt><dd id="hero-tokens-in">—</dd></div>
+          <div><dt>Tokens out</dt><dd id="hero-tokens-out">—</dd></div>
+          <div><dt>Avg duration</dt><dd id="hero-duration">—</dd></div>
+        </dl>
+      </section>
+
+      <section class="tiles" aria-label="Key metrics">
+        <article class="tile">
+          <p class="tile-label">Tool calls</p>
+          <p class="tile-value" id="stat-calls">—</p>
+          <p class="tile-sub" id="stat-calls-sub">&nbsp;</p>
+        </article>
+        <article class="tile">
+          <p class="tile-label">Sessions</p>
+          <p class="tile-value" id="stat-sessions">—</p>
+          <p class="tile-sub" id="stat-sessions-sub">&nbsp;</p>
+        </article>
+        <article class="tile">
+          <p class="tile-label">Error rate</p>
+          <p class="tile-value" id="stat-errors">—</p>
+          <p class="tile-sub" id="stat-errors-sub">&nbsp;</p>
+        </article>
+        <article class="tile">
+          <p class="tile-label">Blocked</p>
+          <p class="tile-value" id="stat-blocked">—</p>
+          <p class="tile-sub" id="stat-blocked-sub">by policy</p>
+        </article>
+      </section>
+
+      <section class="panel" aria-labelledby="timeline-title">
+        <div class="panel-head">
+          <div>
+            <h2 id="timeline-title">Activity over time</h2>
+            <p class="panel-sub">Tool calls per bucket, errors marked separately.</p>
+          </div>
+          <div class="legend" id="timeline-legend">
+            <span class="legend-item"><i class="swatch swatch-calls"></i>Calls</span>
+            <span class="legend-item"><i class="swatch swatch-errors"></i>Errors</span>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="timeline" height="220" aria-describedby="timeline-table-note"></canvas>
+          <div class="tooltip" id="timeline-tip" role="status" aria-live="polite"></div>
+        </div>
+        <p class="panel-note" id="timeline-table-note">
+          <button type="button" class="linklike" data-toggle-table="timeline">
+            Show data table
+          </button>
+        </p>
+        <div class="table-wrap is-hidden" data-table="timeline">
+          <table>
+            <caption class="sr-only">Activity over time, as a table</caption>
+            <thead>
+              <tr><th scope="col">Bucket</th><th scope="col">Calls</th><th scope="col">Errors</th><th scope="col">Cost</th></tr>
+            </thead>
+            <tbody id="timeline-table-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <div class="split">
+        <section class="panel" aria-labelledby="tools-title">
+          <div class="panel-head">
+            <div>
+              <h2 id="tools-title">Tools</h2>
+              <p class="panel-sub">Where the calls and the money go.</p>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Tool</th>
+                  <th scope="col" class="num">Calls</th>
+                  <th scope="col" class="num">Errors</th>
+                  <th scope="col" class="num">Avg ms</th>
+                  <th scope="col" class="num">Cost</th>
+                </tr>
+              </thead>
+              <tbody id="tools-body">
+                <tr><td colspan="5" class="empty">No tool calls recorded yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="sessions-title">
+          <div class="panel-head">
+            <div>
+              <h2 id="sessions-title">Sessions</h2>
+              <p class="panel-sub">Coarse sessions show only duration and exit code.</p>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Agent</th>
+                  <th scope="col">Started</th>
+                  <th scope="col" class="num">Calls</th>
+                  <th scope="col" class="num">Cost</th>
+                </tr>
+              </thead>
+              <tbody id="sessions-body">
+                <tr><td colspan="4" class="empty">No sessions yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <section class="panel" aria-labelledby="activity-title">
+        <div class="panel-head">
+          <div>
+            <h2 id="activity-title">Recent activity</h2>
+            <p class="panel-sub">Inputs are truncated and secret-redacted before storage.</p>
+          </div>
+          <div class="filterset" role="group" aria-label="Filter by status">
+            <button type="button" data-status="" aria-pressed="true">All</button>
+            <button type="button" data-status="success">Success</button>
+            <button type="button" data-status="error">Errors</button>
+            <button type="button" data-status="blocked">Blocked</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Status</th>
+                <th scope="col">Tool</th>
+                <th scope="col">Input</th>
+                <th scope="col">When</th>
+                <th scope="col" class="num">ms</th>
+                <th scope="col" class="num">Cost</th>
+              </tr>
+            </thead>
+            <tbody id="activity-body">
+              <tr><td colspan="6" class="empty">Nothing yet. Run an agent to see activity here.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span id="conn-state" class="conn">Connecting…</span>
+      <span>Local data only · <code>~/.agentobs/agentobs.db</code></span>
+    </footer>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

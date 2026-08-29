@@ -1,0 +1,31 @@
+{
+  "name": "@klars/agentobs",
+  "version": "0.1.0",
+  "description": "Observability and control layer for AI coding agents - see every tool call, token, and dollar your agents spend, and stop them before they do something risky.",
+  "license": "MIT",
+  "author": "Klars AI",
+  "homepage": "https://github.com/klars-ai/agentobs",
+  "repository": { "type": "git", "url": "https://github.com/klars-ai/agentobs.git" },
+  "keywords": ["ai", "agents", "observability", "claude-code", "llm", "cost-tracking", "guardrails"],
+  "type": "module",
+  "engines": { "node": ">=22.5" },
+  "bin": {
+    "agentobs": "./bin/agentobs",
+    "agentobs-hook": "./bin/agentobs-hook"
+  },
+  "files": ["dist", "bin", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && npm run copy:assets",
+    "copy:assets": "node scripts/copy-assets.mjs",
+    "dev": "tsc -p tsconfig.json --watch",
+    "test": "npm run build && node --test \"dist/**/*.test.js\"",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0"
+  }
+}

@@ -1,0 +1,64 @@
+# Production deployment for the single-EC2 host (infra/aws/).
+# Same shape as mobscan's compose stack: Postgres + app + Caddy on one box.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-agentobs}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      POSTGRES_DB: ${POSTGRES_DB:-agentobs}
+    volumes:
+      - agentobs_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agentobs}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Not published to the host: only the app container needs it, and
+    # exposing 5432 on a public-IP box is how databases get found.
+    expose:
+      - "5432"
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      DATABASE_URL: postgres://${POSTGRES_USER:-agentobs}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-agentobs}
+      # Transactional email (account verification, alerts). Same Resend
+      # account and verified klars.ai domain as mobscan - no separate
+      # provider setup. Absent key degrades to "not sent", never a crash.
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      APP_BASE_URL: ${APP_BASE_URL:-https://agents.klars.ai}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+      AGENTOBS_DASHBOARD_TOKEN: ${AGENTOBS_DASHBOARD_TOKEN:?AGENTOBS_DASHBOARD_TOKEN must be set}
+    expose:
+      - "8080"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - web
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      CADDY_DOMAIN: ${CADDY_DOMAIN:?CADDY_DOMAIN must be set}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  agentobs_pgdata:
+  caddy_data:
+  caddy_config:

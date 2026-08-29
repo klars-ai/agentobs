@@ -1,0 +1,18 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+.env
+.env.*
+!.env.example
+
+# Terraform - state can contain secrets, and .pem files are private keys.
+infra/**/.terraform/
+infra/**/*.tfstate
+infra/**/*.tfstate.*
+infra/**/*.pem
+infra/**/.terraform.lock.hcl
+
+# Local scratch
+tmp/
+coverage/

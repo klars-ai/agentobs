@@ -1,0 +1,22 @@
+# Automatic HTTPS via Let's Encrypt for the single-EC2 deployment
+# (infra/aws/). Caddy requests and renews the certificate itself - no manual
+# cert management. {$CADDY_DOMAIN} comes from .env (e.g. agents.klars.ai), so
+# this file needs no per-environment edits.
+#
+# Same shape as mobscan's Caddyfile; see infra/aws/README.md.
+
+{$CADDY_DOMAIN} {
+	encode gzip
+
+	# Security headers. The dashboard renders tool inputs from users'
+	# repositories, so it must never be framed by another origin.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	reverse_proxy web:8080
+}

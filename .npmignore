@@ -1,0 +1,7 @@
+src/
+infra/
+scripts/
+docs/
+.github/
+tsconfig.json
+*.test.ts
