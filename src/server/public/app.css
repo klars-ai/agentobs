@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
 /*
  * AgentObs dashboard styling.
  *
@@ -40,9 +42,9 @@
   --radius: 10px;
   --radius-sm: 6px;
   --shadow: 0 1px 2px rgba(11, 11, 11, 0.05), 0 8px 24px -12px rgba(11, 11, 11, 0.12);
-  --font: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto,
-    "Helvetica Neue", Arial, sans-serif;
-  --mono: ui-monospace, SFMono-Regular, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  --font: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -666,3 +668,294 @@ td.empty {
     animation-duration: 0.01ms !important;
   }
 }
+
+/* =====================================================================
+   Visual layer
+   ---------------------------------------------------------------------
+   Colors still come only from the validated palette tokens above; what
+   follows adds depth, brand presence and trend context on top of them.
+   ===================================================================== */
+
+:root {
+  /* Tints derived from palette hues. Used for washes and accent bars only,
+     never as a series color, so nothing here competes with the data. */
+  --tint-blue: rgba(42, 120, 214, 0.08);
+  --tint-green: rgba(27, 175, 122, 0.08);
+  --tint-amber: rgba(250, 178, 25, 0.1);
+  --tint-red: rgba(208, 59, 59, 0.08);
+  --glow: rgba(42, 120, 214, 0.16);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --tint-blue: rgba(57, 135, 229, 0.14);
+    --tint-green: rgba(25, 158, 112, 0.14);
+    --tint-amber: rgba(250, 178, 25, 0.14);
+    --tint-red: rgba(208, 59, 59, 0.14);
+    --glow: rgba(57, 135, 229, 0.22);
+  }
+}
+
+:root[data-theme='dark'] {
+  --tint-blue: rgba(57, 135, 229, 0.14);
+  --tint-green: rgba(25, 158, 112, 0.14);
+  --tint-amber: rgba(250, 178, 25, 0.14);
+  --tint-red: rgba(208, 59, 59, 0.14);
+  --glow: rgba(57, 135, 229, 0.22);
+}
+
+/* Ambient background. Two very low-opacity radial washes give the page
+   depth without tinting any surface the data sits on. Fixed attachment so
+   it reads as a backdrop rather than scrolling wallpaper. */
+body {
+  background-image:
+    radial-gradient(900px 420px at 12% -8%, var(--tint-blue), transparent 62%),
+    radial-gradient(760px 380px at 92% 4%, var(--tint-green), transparent 58%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  letter-spacing: -0.006em;
+}
+
+/* ---------- brand ---------- */
+
+.brand-mark {
+  background: none;
+  border-radius: 0;
+  display: grid;
+  place-items: center;
+}
+
+.brand-mark img,
+.brand-mark svg {
+  width: 30px;
+  height: 30px;
+  display: block;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px -2px var(--glow);
+}
+
+.topbar {
+  /* Translucent bar over the ambient wash, so the backdrop shows through
+     as the content scrolls under it. */
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  backdrop-filter: saturate(1.4) blur(10px);
+  -webkit-backdrop-filter: saturate(1.4) blur(10px);
+}
+
+/* ---------- hero ---------- */
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--series-1) 5%, var(--surface)), var(--surface));
+}
+
+/* A hairline of brand color along the top edge - enough to make the hero
+   read as the primary panel without adding a heavy colored block. */
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--series-1), var(--series-3));
+}
+
+.hero-figure {
+  font-variant-numeric: proportional-nums;
+  background: linear-gradient(135deg, var(--text-primary), color-mix(in srgb, var(--series-1) 55%, var(--text-primary)));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hero-spark {
+  flex: 1 1 260px;
+  min-width: 200px;
+  max-width: 420px;
+  height: 76px;
+  display: block;
+}
+
+/* ---------- stat tiles ---------- */
+
+.tile {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.tile:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(11, 11, 11, 0.05), 0 14px 32px -14px rgba(11, 11, 11, 0.22);
+}
+
+/* Left accent bar: the one place each tile carries its own hue, so the four
+   read as distinct cards at a glance. Status hues stay reserved for status. */
+.tile::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--series-1);
+  opacity: 0.85;
+}
+
+.tile[data-accent='calls']::before { background: var(--series-1); }
+.tile[data-accent='sessions']::before { background: var(--series-3); }
+.tile[data-accent='errors']::before { background: var(--status-critical); }
+.tile[data-accent='blocked']::before { background: var(--status-serious); }
+
+.tile[data-accent='calls'] { background: linear-gradient(180deg, var(--tint-blue), transparent 42%), var(--surface); }
+.tile[data-accent='sessions'] { background: linear-gradient(180deg, var(--tint-green), transparent 42%), var(--surface); }
+.tile[data-accent='errors'] { background: linear-gradient(180deg, var(--tint-red), transparent 42%), var(--surface); }
+.tile[data-accent='blocked'] { background: linear-gradient(180deg, var(--tint-amber), transparent 42%), var(--surface); }
+
+.tile-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tile-value {
+  font-variant-numeric: proportional-nums;
+}
+
+.tile-spark {
+  width: 100%;
+  height: 30px;
+  display: block;
+  margin-top: 10px;
+  opacity: 0.9;
+}
+
+/* Delta chip: direction is carried by an arrow glyph and the sign, not by
+   color alone - the same icon+label rule the status pills follow. */
+.delta[hidden] {
+  display: none;
+}
+
+.delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  background: var(--raised);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.delta-good {
+  color: var(--success-text);
+  background: color-mix(in srgb, var(--status-good) 12%, transparent);
+  border-color: color-mix(in srgb, var(--status-good) 30%, transparent);
+}
+
+.delta-bad {
+  color: var(--status-critical);
+  background: color-mix(in srgb, var(--status-critical) 12%, transparent);
+  border-color: color-mix(in srgb, var(--status-critical) 30%, transparent);
+}
+
+/* ---------- panels & tables ---------- */
+
+.panel {
+  transition: box-shadow 0.15s ease;
+}
+
+.panel:hover {
+  box-shadow: 0 2px 4px rgba(11, 11, 11, 0.05), 0 16px 36px -18px rgba(11, 11, 11, 0.2);
+}
+
+.panel-head {
+  background: linear-gradient(180deg, var(--raised), transparent);
+}
+
+thead th {
+  position: sticky;
+  top: 0;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(6px);
+}
+
+tbody tr {
+  transition: background 0.1s ease;
+}
+
+/* A tool name reads better with its own weight than with a colored dot,
+   which would imply a series identity the table does not have. */
+tbody td:first-child {
+  font-weight: 500;
+}
+
+.pill {
+  letter-spacing: 0.01em;
+}
+
+.badge {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: -0.01em;
+}
+
+/* ---------- chart ---------- */
+
+.chart-wrap {
+  background: linear-gradient(180deg, transparent, var(--raised));
+}
+
+.tooltip {
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.45);
+  font-weight: 500;
+}
+
+/* ---------- footer ---------- */
+
+.conn.is-live::before {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-good) 22%, transparent);
+}
+
+/* ---------- icons ---------- */
+
+/* Inline SVG icons inherit the text color of whatever they sit in, so they
+   never need a per-theme override and never carry a data color. */
+.i {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  vertical-align: -2px;
+  margin-right: 7px;
+  color: var(--text-muted);
+}
+
+.panel-head h2 {
+  display: flex;
+  align-items: center;
+}
+
+.panel-head h2 .i {
+  width: 15px;
+  height: 15px;
+  color: var(--series-1);
+  opacity: 0.9;
+}
+
+.tile-label {
+  display: flex;
+  align-items: center;
+}
+
+/* The tile icon picks up its card's accent, which is what makes the four
+   tiles scannable by color+shape rather than by reading each label. */
+.tile[data-accent='calls'] .tile-label .i { color: var(--series-1); }
+.tile[data-accent='sessions'] .tile-label .i { color: var(--series-3); }
+.tile[data-accent='errors'] .tile-label .i { color: var(--status-critical); }
+.tile[data-accent='blocked'] .tile-label .i { color: var(--status-serious); }

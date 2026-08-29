@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" role="img" aria-label="AgentObs">
+  <!--
+    The mark is the product in miniature: an ascending bar series (the activity
+    the tool records) with one bar stopped by a guardrail line. Observability
+    plus enforcement, which is exactly what distinguishes this from a dashboard.
+  -->
+  <defs>
+    <linearGradient id="ao-g" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2a78d6" />
+      <stop offset="1" stop-color="#1baf7a" />
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="8" fill="url(#ao-g)" />
+  <rect x="7" y="17" width="3.5" height="8" rx="1.75" fill="#fff" opacity=".95" />
+  <rect x="13.25" y="12" width="3.5" height="13" rx="1.75" fill="#fff" opacity=".95" />
+  <rect x="19.5" y="15" width="3.5" height="10" rx="1.75" fill="#fff" opacity=".55" />
+  <path d="M6 9.5h20" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".9" />
+</svg>

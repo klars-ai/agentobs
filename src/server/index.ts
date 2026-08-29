@@ -23,6 +23,7 @@ import {
   getPolicyDecisions,
   getRecentToolCalls,
   getSessions,
+  getSparklines,
   getSummary,
   getTimeline,
   getToolsBreakdown,
@@ -114,7 +115,9 @@ export function createDashboardServer(opts: ServerOptions) {
 
       switch (url.pathname) {
         case '/api/summary':
-          json(res, getSummary(db, range));
+          // Sparklines ride along with the summary: the tiles need both, and
+          // one request keeps the 5s poll to a single round trip.
+          json(res, { ...getSummary(db, range), sparklines: getSparklines(db, range) });
           return;
         case '/api/timeline':
           json(res, getTimeline(db, range));

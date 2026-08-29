@@ -629,3 +629,24 @@ pre,
 table {
   max-width: 100%;
 }
+
+/* ---------- demo animation ---------- */
+
+.demo {
+  margin: 0 0 34px;
+}
+
+.demo img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+/* The logo replaces the old gradient square, so drop the square's styling. */
+img.brand-mark {
+  background: none;
+  border-radius: 7px;
+}

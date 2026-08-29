@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
     <title>AgentObs</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128200;</text></svg>" />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <link rel="stylesheet" href="/app.css" />
   </head>
   <body>
@@ -13,7 +13,7 @@
 
     <header class="topbar">
       <div class="brand">
-        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-mark" aria-hidden="true"><img src="/logo.svg" alt="" width="30" height="30" /></span>
         <div>
           <h1>AgentObs</h1>
           <p class="brand-sub">Agent observability &amp; control</p>
@@ -41,6 +41,7 @@
           <p class="hero-figure" id="hero-cost">—</p>
           <p class="hero-note" id="hero-note">No activity recorded yet.</p>
         </div>
+        <canvas class="hero-spark" id="hero-spark" aria-hidden="true"></canvas>
         <dl class="hero-side">
           <div><dt>Tokens in</dt><dd id="hero-tokens-in">—</dd></div>
           <div><dt>Tokens out</dt><dd id="hero-tokens-out">—</dd></div>
@@ -49,32 +50,47 @@
       </section>
 
       <section class="tiles" aria-label="Key metrics">
-        <article class="tile">
-          <p class="tile-label">Tool calls</p>
+        <article class="tile" data-accent="calls">
+          <div class="tile-head">
+            <p class="tile-label"><svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 13V7m4 6V3m4 10V6m4 7V9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg>Tool calls</p>
+            <span class="delta" id="delta-calls" hidden></span>
+          </div>
           <p class="tile-value" id="stat-calls">—</p>
           <p class="tile-sub" id="stat-calls-sub">&nbsp;</p>
+          <canvas class="tile-spark" id="spark-calls" aria-hidden="true"></canvas>
         </article>
-        <article class="tile">
-          <p class="tile-label">Sessions</p>
+        <article class="tile" data-accent="sessions">
+          <div class="tile-head">
+            <p class="tile-label"><svg class="i" viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3" width="12" height="10" rx="2" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M2 6h12" stroke="currentColor" stroke-width="1.6"/></svg>Sessions</p>
+            <span class="delta" id="delta-sessions" hidden></span>
+          </div>
           <p class="tile-value" id="stat-sessions">—</p>
           <p class="tile-sub" id="stat-sessions-sub">&nbsp;</p>
+          <canvas class="tile-spark" id="spark-sessions" aria-hidden="true"></canvas>
         </article>
-        <article class="tile">
-          <p class="tile-label">Error rate</p>
+        <article class="tile" data-accent="errors">
+          <div class="tile-head">
+            <p class="tile-label"><svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5 15 13.5H1L8 2.5Z" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linejoin="round"/><path d="M8 6.5v3M8 11.6v.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Error rate</p>
+            <span class="delta" id="delta-errors" hidden></span>
+          </div>
           <p class="tile-value" id="stat-errors">—</p>
           <p class="tile-sub" id="stat-errors-sub">&nbsp;</p>
+          <canvas class="tile-spark" id="spark-errors" aria-hidden="true"></canvas>
         </article>
-        <article class="tile">
-          <p class="tile-label">Blocked</p>
+        <article class="tile" data-accent="blocked">
+          <div class="tile-head">
+            <p class="tile-label"><svg class="i" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M3.8 3.8l8.4 8.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Blocked</p>
+          </div>
           <p class="tile-value" id="stat-blocked">—</p>
           <p class="tile-sub" id="stat-blocked-sub">by policy</p>
+          <canvas class="tile-spark" id="spark-blocked" aria-hidden="true"></canvas>
         </article>
       </section>
 
       <section class="panel" aria-labelledby="timeline-title">
         <div class="panel-head">
           <div>
-            <h2 id="timeline-title">Activity over time</h2>
+            <h2 id="timeline-title"><svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 11.5 5.5 7l3 2.5L14.5 4" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="14.5" cy="4" r="1.6" fill="currentColor"/></svg>Activity over time</h2>
             <p class="panel-sub">Tool calls per bucket, errors marked separately.</p>
           </div>
           <div class="legend" id="timeline-legend">
@@ -106,7 +122,7 @@
         <section class="panel" aria-labelledby="tools-title">
           <div class="panel-head">
             <div>
-              <h2 id="tools-title">Tools</h2>
+              <h2 id="tools-title"><svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M10.6 2.2a3.6 3.6 0 0 0-4.3 4.6L2.3 10.8a1.4 1.4 0 0 0 2 2l4-4a3.6 3.6 0 0 0 4.6-4.3L11 6.3 9.7 5 10.6 2.2Z" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linejoin="round"/></svg>Tools</h2>
               <p class="panel-sub">Where the calls and the money go.</p>
             </div>
           </div>
@@ -131,7 +147,7 @@
         <section class="panel" aria-labelledby="sessions-title">
           <div class="panel-head">
             <div>
-              <h2 id="sessions-title">Sessions</h2>
+              <h2 id="sessions-title"><svg class="i" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M8 4.6V8l2.4 1.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg>Sessions</h2>
               <p class="panel-sub">Coarse sessions show only duration and exit code.</p>
             </div>
           </div>
@@ -156,7 +172,7 @@
       <section class="panel" aria-labelledby="activity-title">
         <div class="panel-head">
           <div>
-            <h2 id="activity-title">Recent activity</h2>
+            <h2 id="activity-title"><svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 8h3l1.6-4 2.4 8 1.7-4h4.3" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Recent activity</h2>
             <p class="panel-sub">Inputs are truncated and secret-redacted before storage.</p>
           </div>
           <div class="filterset" role="group" aria-label="Filter by status">

@@ -10,6 +10,7 @@ const state = {
   range: '7d',
   status: '',
   timeline: [],
+  sparklines: null,
 };
 
 const RANGE_LABEL = {
@@ -144,6 +145,17 @@ function renderSummary(s) {
   document.getElementById('stat-errors').textContent = percent(s.error_rate);
   document.getElementById('stat-errors-sub').textContent = `${count(s.errors)} failed`;
   document.getElementById('stat-blocked').textContent = count(s.blocked);
+
+  const prev = s.previous;
+  renderDelta(document.getElementById('delta-calls'), s.tool_calls, prev?.tool_calls);
+  renderDelta(document.getElementById('delta-sessions'), s.sessions, prev?.sessions);
+  // Up is bad for an error rate - see renderDelta's goodWhenUp.
+  renderDelta(document.getElementById('delta-errors'), s.error_rate, prev?.error_rate, {
+    goodWhenUp: false,
+  });
+
+  state.sparklines = s.sparklines ?? null;
+  drawAllSparks();
 
   for (const el of document.querySelectorAll('[data-range-label]')) {
     el.textContent = RANGE_LABEL[state.range] ?? '';
@@ -354,7 +366,13 @@ function drawTimeline() {
     const h = Math.max(row.calls > 0 ? 2 : 0, plotH - (y(row.calls) - pad.top));
 
     if (h > 0) {
-      ctx.fillStyle = cssVar('--series-1');
+      // Vertical gradient rather than a flat fill: it gives the bar body
+      // depth while keeping full saturation at the data end, where the
+      // value is actually read.
+      const grad = ctx.createLinearGradient(0, y(row.calls), 0, pad.top + plotH);
+      grad.addColorStop(0, cssVar('--series-1'));
+      grad.addColorStop(1, hexToRgba(cssVar('--series-1'), 0.55));
+      ctx.fillStyle = grad;
       roundedTop(ctx, x, y(row.calls), barW, h, radius);
       ctx.fill();
     }
@@ -487,6 +505,7 @@ themeToggle.addEventListener('click', () => {
     // render, it just won't remember the choice.
   }
   drawTimeline();
+  drawAllSparks();
 });
 
 try {
@@ -496,7 +515,133 @@ try {
   /* ignore */
 }
 
-window.addEventListener('resize', drawTimeline);
+window.addEventListener('resize', () => {
+  drawTimeline();
+  drawAllSparks();
+});
 
 refresh();
 setInterval(refresh, 5000);
+
+/* ---------- sparklines & deltas ---------- */
+
+/**
+ * Draws a filled sparkline into a canvas.
+ *
+ * Deliberately axis-less and label-less: a sparkline's job is shape, not
+ * value. The number it accompanies is the value, so adding ticks here would
+ * duplicate it and crowd the tile.
+ */
+function drawSpark(canvas, values, color, { fill = true, dot = true } = {}) {
+  if (!canvas || !values || values.length === 0) return;
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth || 200;
+  const h = canvas.clientHeight || 30;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+
+  const max = Math.max(...values, 1);
+  const pad = 3;
+  const stepX = values.length > 1 ? (w - pad * 2) / (values.length - 1) : 0;
+  const y = (v) => h - pad - (v / max) * (h - pad * 2);
+  const pts = values.map((v, i) => [pad + i * stepX, y(v)]);
+
+  if (fill) {
+    // Fade the fill to transparent so the tile's own tint shows through
+    // rather than the sparkline reading as a solid block.
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, hexToRgba(color, 0.28));
+    grad.addColorStop(1, hexToRgba(color, 0));
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], h);
+    for (const [px, py] of pts) ctx.lineTo(px, py);
+    ctx.lineTo(pts[pts.length - 1][0], h);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+  }
+
+  ctx.beginPath();
+  pts.forEach(([px, py], i) => (i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py)));
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  if (dot) {
+    // 2px surface ring on the end marker, per the mark spec, so the dot
+    // stays legible where it overlaps the line or fill.
+    const [lx, ly] = pts[pts.length - 1];
+    ctx.beginPath();
+    ctx.arc(lx, ly, 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = cssVar('--surface');
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(lx, ly, 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+  }
+}
+
+/** #rrggbb -> rgba(). Canvas gradients need a concrete alpha value. */
+function hexToRgba(hex, alpha) {
+  const h = hex.trim().replace('#', '');
+  const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+  const n = parseInt(full, 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+}
+
+/**
+ * Renders a delta chip.
+ *
+ * `goodWhenUp` matters: more tool calls is neutral-to-good, but a higher
+ * error rate is bad. Coloring purely by sign would congratulate the user on
+ * a rising error rate.
+ */
+function renderDelta(el, current, previous, { goodWhenUp = true } = {}) {
+  if (!el) return;
+  if (previous === null || previous === undefined || previous === 0) {
+    el.hidden = true;
+    el.textContent = '';
+    return;
+  }
+  const change = ((current - previous) / previous) * 100;
+  if (!Number.isFinite(change) || Math.abs(change) < 0.5) {
+    // Below half a percent is noise; a chip there implies a signal that
+    // isn't real.
+    el.hidden = true;
+    el.textContent = '';
+    return;
+  }
+  const up = change > 0;
+  const magnitude = Math.abs(change);
+  const tone = up === goodWhenUp ? 'delta-good' : 'delta-bad';
+  el.className = `delta ${tone}`;
+  el.textContent = `${up ? '▲' : '▼'} ${magnitude < 10 ? magnitude.toFixed(1) : Math.round(magnitude)}%`;
+  el.title = 'vs the previous period of the same length';
+  el.removeAttribute('hidden');
+}
+
+/** Repaints every sparkline. Called on refresh, resize and theme change. */
+function drawAllSparks() {
+  const s = state.sparklines;
+  if (!s) return;
+  drawSpark(document.getElementById('hero-spark'), s.cost, cssVar('--series-1'));
+  drawSpark(document.getElementById('spark-calls'), s.calls, cssVar('--series-1'));
+  drawSpark(document.getElementById('spark-sessions'), s.sessions, cssVar('--series-3'));
+  drawSpark(document.getElementById('spark-errors'), s.errors, cssVar('--status-critical'));
+  const blockedCanvas = document.getElementById('spark-blocked');
+  if (s.blocked && s.blocked.some((v) => v > 0)) {
+    drawSpark(blockedCanvas, s.blocked, cssVar('--status-serious'));
+  } else if (blockedCanvas) {
+    // Nothing blocked in this range: clear rather than draw a flat line,
+    // which would read as a real series sitting at zero.
+    const ctx = blockedCanvas.getContext('2d');
+    ctx.clearRect(0, 0, blockedCanvas.width, blockedCanvas.height);
+  }
+}

@@ -20,10 +20,7 @@
     />
     <meta name="twitter:card" content="summary_large_image" />
 
-    <link
-      rel="icon"
-      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128200;</text></svg>"
-    />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <link rel="stylesheet" href="/site.css" />
   </head>
   <body>
@@ -31,7 +28,7 @@
 
     <header class="nav">
       <a class="brand" href="/">
-        <span class="brand-mark" aria-hidden="true"></span>
+        <img class="brand-mark" src="/logo.svg" alt="" width="26" height="26" />
         <span class="brand-name">AgentObs</span>
       </a>
       <nav class="nav-links">
@@ -134,14 +131,16 @@ agentobs init</code></pre>
           Guardrails are evaluated inside the same hook that does the logging, so a blocked
           call never executes. Check exactly what a rule will do before it fires mid-task:
         </p>
-        <pre class="terminal"><code><span class="prompt">$</span> agentobs policy test Bash "rm -rf ./build"
-
-  Tool       Bash
-  Input      rm -rf ./build
-  Decision   <span class="bad">BLOCK</span>
-  Rule       no-recursive-force-delete
-
-  This call would be BLOCKED before running.</code></pre>
+        <figure class="demo">
+          <img
+            src="/demo.gif"
+            alt="Terminal demo: agentobs policy test blocks an rm -rf command, then agentobs stats shows cost, calls, errors and blocked totals."
+            width="880"
+            height="500"
+            loading="lazy"
+            decoding="async"
+          />
+        </figure>
 
         <div class="cards">
           <article>

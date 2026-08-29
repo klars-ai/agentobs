@@ -1,14 +1,35 @@
+<div align="center">
+
+<img src="docs/assets/logo.svg" width="72" height="72" alt="" />
+
 # AgentObs
 
-**See every tool call, token, and dollar your AI coding agents spend — and stop them before they do something risky.**
+**See every tool call, token, and dollar your AI agents spend — and stop the risky ones.**
+
+[![npm](https://img.shields.io/npm/v/@klars/agentobs?color=2a78d6&label=npm)](https://www.npmjs.com/package/@klars/agentobs)
+[![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
+[![Node](https://img.shields.io/badge/node-%E2%89%A522.5-1baf7a)](https://nodejs.org)
+
+[Website](https://agents.klars.ai) · [npm](https://www.npmjs.com/package/@klars/agentobs) · [Contributing](CONTRIBUTING.md)
+
+</div>
+
+<br>
+
+<picture>
+  <source srcset="docs/assets/dashboard-dark.png" media="(prefers-color-scheme: dark)" />
+  <img src="docs/assets/dashboard.png" alt="The AgentObs dashboard: spend for the week, tool call and error-rate tiles with trend sparklines, an activity chart, and tables of tools and sessions." />
+</picture>
+
+<br>
+
+## Guardrails that actually stop things
+
+<img src="docs/assets/demo.gif" alt="Terminal demo: agentobs policy test blocks an rm -rf command, then agentobs stats shows the cost, calls, errors and blocked totals." width="820" />
 
 AgentObs is an observability and control layer for AI coding agents. It runs
 entirely on your machine: a CLI, a local SQLite database, and a dashboard. No
 account, no cloud, no telemetry.
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
-
----
 
 ## Quick start
 

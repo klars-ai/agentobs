@@ -41,6 +41,49 @@ export interface Summary {
   tokens_in: number;
   tokens_out: number;
   avg_duration_ms: number | null;
+  /**
+   * The immediately preceding window of the same length, so the UI can show a
+   * delta. Null for range 'all', which has no "previous" to compare against -
+   * a delta there would be meaningless rather than merely unknown.
+   */
+  previous: PeriodTotals | null;
+}
+
+export interface PeriodTotals {
+  total_cost_usd: number | null;
+  tool_calls: number;
+  sessions: number;
+  errors: number;
+  error_rate: number;
+}
+
+/**
+ * Totals for an explicit window. Used for the previous-period comparison;
+ * `getSummary` handles the current window itself.
+ */
+function periodTotals(db: DatabaseSync, from: string, to: string): PeriodTotals {
+  const calls = db
+    .prepare(
+      `SELECT COUNT(*) AS tool_calls,
+              COALESCE(SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END), 0) AS errors,
+              SUM(cost_usd) AS total_cost_usd
+         FROM tool_calls
+        WHERE started_at >= ? AND started_at < ?`,
+    )
+    .get(from, to) as Record<string, number | null>;
+  const sessions = db
+    .prepare('SELECT COUNT(*) AS n FROM sessions WHERE started_at >= ? AND started_at < ?')
+    .get(from, to) as { n: number };
+
+  const toolCalls = Number(calls.tool_calls ?? 0);
+  const errors = Number(calls.errors ?? 0);
+  return {
+    total_cost_usd: calls.total_cost_usd === null ? null : Number(calls.total_cost_usd),
+    tool_calls: toolCalls,
+    sessions: Number(sessions.n ?? 0),
+    errors,
+    error_rate: toolCalls === 0 ? 0 : errors / toolCalls,
+  };
 }
 
 export function getSummary(db: DatabaseSync, range: Range): Summary {
@@ -83,7 +126,19 @@ export function getSummary(db: DatabaseSync, range: Range): Summary {
     tokens_in: Number(calls.tokens_in ?? 0),
     tokens_out: Number(calls.tokens_out ?? 0),
     avg_duration_ms: calls.avg_duration_ms === null ? null : Number(calls.avg_duration_ms),
+    previous: previousPeriod(db, range, since),
   };
+}
+
+/**
+ * Totals for the window immediately before the current one, of equal length.
+ * Returns null for 'all', where there is no previous period to compare to.
+ */
+function previousPeriod(db: DatabaseSync, range: Range, since: string | null): PeriodTotals | null {
+  if (!since) return null;
+  const start = Date.parse(since);
+  const spanMs = range === 'today' ? 864e5 : range === '7d' ? 7 * 864e5 : 30 * 864e5;
+  return periodTotals(db, new Date(start - spanMs).toISOString(), since);
 }
 
 export interface TimelineBucket {
@@ -116,6 +171,56 @@ export function getTimeline(db: DatabaseSync, range: Range): TimelineBucket[] {
         ORDER BY bucket ASC`,
     )
     .all(fmt, ...args) as unknown as TimelineBucket[];
+}
+
+/**
+ * Compact per-bucket series for the stat-tile sparklines.
+ *
+ * Returns a fixed 12 buckets (the stat-tile contract's trend length),
+ * zero-filled so a quiet day renders as a gap in the line rather than
+ * silently shortening the series and misstating the shape.
+ */
+export function getSparklines(
+  db: DatabaseSync,
+  range: Range,
+): { calls: number[]; cost: number[]; errors: number[]; sessions: number[]; blocked: number[] } {
+  const POINTS = 12;
+  const spanMs = range === 'today' ? 864e5 : range === '7d' ? 7 * 864e5 : 30 * 864e5;
+  const end = Date.now();
+  const start = range === 'all' ? null : end - spanMs;
+  const bucketMs = (start ? spanMs : 30 * 864e5) / POINTS;
+  const origin = start ?? end - 30 * 864e5;
+
+  const rows = db
+    .prepare(
+      `SELECT started_at, status, cost_usd, session_id
+         FROM tool_calls
+        WHERE started_at >= ?`,
+    )
+    .all(new Date(origin).toISOString()) as unknown as Array<{
+    started_at: string;
+    status: string;
+    cost_usd: number | null;
+    session_id: string;
+  }>;
+
+  const calls = new Array(POINTS).fill(0);
+  const cost = new Array(POINTS).fill(0);
+  const errors = new Array(POINTS).fill(0);
+  const blocked = new Array(POINTS).fill(0);
+  const sessionSets: Array<Set<string>> = Array.from({ length: POINTS }, () => new Set());
+
+  for (const row of rows) {
+    const i = Math.min(POINTS - 1, Math.floor((Date.parse(row.started_at) - origin) / bucketMs));
+    if (i < 0) continue;
+    calls[i] += 1;
+    cost[i] += row.cost_usd ?? 0;
+    if (row.status === 'error') errors[i] += 1;
+    if (row.status === 'blocked') blocked[i] += 1;
+    sessionSets[i].add(row.session_id);
+  }
+
+  return { calls, cost, errors, blocked, sessions: sessionSets.map((s) => s.size) };
 }
 
 export interface ToolBreakdownRow {
