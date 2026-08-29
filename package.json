@@ -5,15 +5,36 @@
   "license": "MIT",
   "author": "Klars AI",
   "homepage": "https://github.com/klars-ai/agentobs",
-  "repository": { "type": "git", "url": "https://github.com/klars-ai/agentobs.git" },
-  "keywords": ["ai", "agents", "observability", "claude-code", "llm", "cost-tracking", "guardrails"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/klars-ai/agentobs.git"
+  },
+  "keywords": [
+    "ai",
+    "agents",
+    "observability",
+    "claude-code",
+    "llm",
+    "cost-tracking",
+    "guardrails"
+  ],
   "type": "module",
-  "engines": { "node": ">=22.5" },
+  "engines": {
+    "node": ">=22.5"
+  },
   "bin": {
     "agentobs": "./bin/agentobs",
     "agentobs-hook": "./bin/agentobs-hook"
   },
-  "files": ["dist", "bin", "README.md", "LICENSE"],
+  "files": [
+    "dist/**/*.js",
+    "!dist/**/*.test.js",
+    "dist/core/schema.sql",
+    "dist/server/public",
+    "bin",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json && npm run copy:assets",
     "copy:assets": "node scripts/copy-assets.mjs",
