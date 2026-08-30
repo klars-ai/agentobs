@@ -87,39 +87,51 @@
 
       <section class="strip" aria-label="At a glance">
         <div><strong>Local-first</strong><span>Nothing leaves your machine</span></div>
-        <div><strong>Zero config</strong><span>One command to start</span></div>
+        <div><strong>Zero config</strong><span>No hooks needed to start</span></div>
         <div><strong>MIT licensed</strong><span>Read every line</span></div>
       </section>
 
       <section class="section" id="how">
-        <h2>Three commands</h2>
+        <h2>Four commands</h2>
         <ol class="steps">
           <li>
             <span class="step-n">1</span>
             <div>
-              <h3>Install and initialise</h3>
+              <h3>Install</h3>
               <pre><code>npm install -g @klars/agentobs
 agentobs init</code></pre>
-              <p>
-                Prints a hook config block. Paste it into
-                <code>~/.claude/settings.json</code>.
-              </p>
+              <p>Creates <code>~/.agentobs</code>. Nothing leaves your machine.</p>
             </div>
           </li>
           <li>
             <span class="step-n">2</span>
             <div>
-              <h3>Open the dashboard</h3>
-              <pre><code>agentobs dashboard</code></pre>
-              <p>Runs at <code>127.0.0.1:4300</code>. Tool calls appear within seconds.</p>
+              <h3>Import what you have already done</h3>
+              <pre><code>agentobs import</code></pre>
+              <p>
+                Reads Claude Code's own session transcripts — every tool call, token
+                and dollar, backfilled. <strong>No hooks, no configuration.</strong>
+              </p>
             </div>
           </li>
           <li>
             <span class="step-n">3</span>
             <div>
-              <h3>Add guardrails</h3>
+              <h3>Open the dashboard</h3>
+              <pre><code>agentobs dashboard</code></pre>
+              <p>Runs at <code>127.0.0.1:4300</code>.</p>
+            </div>
+          </li>
+          <li>
+            <span class="step-n">4</span>
+            <div>
+              <h3>Add guardrails (optional)</h3>
               <pre><code>agentobs policy init</code></pre>
-              <p>Blocks <code>rm -rf</code> and <code>curl | sh</code> out of the box.</p>
+              <p>
+                Blocks <code>rm -rf</code> and <code>curl | sh</code> out of the box.
+                Blocking needs the Claude Code hook that <code>agentobs init</code>
+                prints — importing alone is after-the-fact.
+              </p>
             </div>
           </li>
         </ol>

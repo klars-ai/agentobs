@@ -36,16 +36,31 @@ account, no cloud, no telemetry.
 ```bash
 npm install -g @klars/agentobs
 agentobs init
+agentobs import
 ```
 
-`init` prints a hook configuration block. Paste it into `~/.claude/settings.json`
-(or a project's `.claude/settings.json`), then:
+`import` reads Claude Code's own session transcripts from `~/.claude/projects/`
+and backfills everything you have already done — no configuration, no hooks.
+Then:
 
 ```bash
 agentobs dashboard
 ```
 
-Run Claude Code as usual. Tool calls appear in the dashboard within seconds.
+That is the fastest path to real data, and the one to try first.
+
+### Live capture (optional)
+
+`import` is after-the-fact. To record calls **as they happen** — and to let
+guardrails actually block them — add the hook configuration that
+`agentobs init` prints to `~/.claude/settings.json`, then restart Claude Code.
+
+> **If hooks record nothing:** this has been observed on at least one Windows
+> install, where Claude Code did not invoke the configured command at all — a
+> plain two-line `.cmd` file also never fired, so it is not specific to
+> AgentObs. Check by running any tool and then `agentobs stats --today`. If it
+> stays at zero, keep using `agentobs import`, which needs no hooks; only
+> guardrail *blocking* depends on them.
 
 ---
 
@@ -85,6 +100,7 @@ Everything lives in `~/.agentobs/`. Uninstalling is `rm -rf ~/.agentobs`.
 
 ```
 agentobs init                        Set up ~/.agentobs and print the hook config
+agentobs import [--days n] [--all]   Import Claude Code transcripts (no hooks needed)
 agentobs dashboard [--port] [--host] Serve the dashboard (default 127.0.0.1:4300)
 agentobs stats [--today] [--since]   Print totals in the terminal
 agentobs run -- <command...>         Observe any command (coarse detail)
@@ -148,22 +164,37 @@ Two deliberate behaviours worth knowing:
 
 ## Agent support
 
-| Agent           | How                        | Detail                                            |
-| --------------- | -------------------------- | ------------------------------------------------- |
-| **Claude Code** | Native hooks               | **Rich** — every tool call, plus policy enforcement |
-| Any CLI agent   | `agentobs run -- <cmd>`    | **Coarse** — duration and exit code only          |
-| Custom / in-house | `agentobs watch <file>`  | **Rich**, if it writes JSONL                      |
+| Agent | How | Detail | Needs setup? |
+| --- | --- | --- | --- |
+| **Claude Code** | `agentobs import` | **Rich** — every tool call, tokens, cost | **No** |
+| **Claude Code** | Native hooks | **Rich**, live, and can *block* calls | Yes — hook config |
+| Any CLI agent | `agentobs run -- <cmd>` | **Coarse** — duration and exit code only | No |
+| Custom / in-house | `agentobs watch <file>` | **Rich**, if it writes JSONL | No |
+
+`import` and hooks read the same underlying data. The difference is timing:
+hooks see a call *before* it runs, which is what makes blocking possible;
+`import` reads the transcript afterwards. If you only want observability,
+`import` is enough and needs no configuration.
 
 The dashboard labels coarse sessions as `coarse` rather than implying detail it
-does not have.
+does not have, and `agentobs stats` explains why a coarse-only range shows zero
+tool calls.
 
 ### A note on cost accuracy
 
-Claude Code's `PostToolUse` hook payload carries **no token or cost fields**.
-AgentObs therefore reads token usage from the session transcript at
-`SessionEnd`, which makes **session-level cost accurate** but leaves
-**per-tool-call cost blank** for hook-sourced data. It does not divide a total
-across calls to manufacture a number.
+Claude Code's `PostToolUse` hook payload carries **no token or cost fields**,
+so token usage comes from the session transcript — at `SessionEnd` for hooks,
+or directly via `agentobs import`. That makes **session-level cost accurate**
+while leaving **per-tool-call cost blank**: usage is reported per assistant
+message, not per tool call, and dividing a total across calls would be a
+manufactured number.
+
+**Cache tokens dominate a long session.** A cached conversation replays its
+whole context on every turn, so `cache_read` can reach hundreds of millions of
+tokens in a single session. AgentObs tracks cache reads (billed at 0.1x input)
+and cache writes (1.25x) separately from fresh tokens, and `agentobs import`
+prints the four lines separately — a single unexplained total looks like a bug
+when the cache line legitimately dwarfs everything else.
 
 Model prices live in `~/.agentobs/pricing.json` and are yours to edit. A model
 missing from that file shows cost as `—`, never `$0.00`.
