@@ -338,38 +338,76 @@ agentobs budget set --block5h 200000 --tokens</code></pre>
         </p>
         <div class="table-wrap">
           <table class="compare">
+            <caption class="compare-caption">
+              Categories, not products &mdash; representative tools are named below. Rows we
+              lose are included: a table with no losing rows is marketing, not evidence.
+            </caption>
             <thead>
               <tr>
                 <th scope="col">Capability</th>
-                <th scope="col">Cost trackers</th>
-                <th scope="col">Budget blockers</th>
-                <th scope="col">Security hooks</th>
+                <th scope="col">Cost<br />trackers</th>
+                <th scope="col">Claude&nbsp;Code<br />built-in</th>
+                <th scope="col">Budget<br />blockers</th>
+                <th scope="col">Security<br />hooks</th>
+                <th scope="col">Team<br />gateways</th>
                 <th scope="col">AgentObs</th>
               </tr>
             </thead>
             <tbody>
-              <tr><td>Cost &amp; token reporting</td><td class="y">Yes</td><td class="y">Yes</td><td class="n">No</td><td class="y">Yes</td></tr>
-              <tr><td>Web dashboard</td><td class="n">No</td><td class="n">No</td><td>Some</td><td class="y">Yes</td></tr>
-              <tr><td>Blocks on a dollar limit</td><td class="n">No</td><td class="y">Yes</td><td class="n">No</td><td class="y">Yes</td></tr>
-              <tr><td>Blocks dangerous commands</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td><td class="y">Yes</td></tr>
-              <tr><td><strong>Blocks on a token budget</strong></td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
-              <tr><td><strong>Blocks on your 5-hour window</strong></td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
-              <tr><td><strong>Scoped approvals</strong></td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
-              <tr><td><strong>Forecasts when you'll run out</strong></td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
-              <tr><td>Status-bar integration</td><td>Some</td><td>Some</td><td class="n">No</td><td class="y">Yes</td></tr>
-              <tr><td><strong>MCP server</strong></td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
-              <tr><td><strong>Alerts to Slack or Discord</strong></td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
-              <tr><td>Secret redaction, unit-tested</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
+              <tr class="group"><th colspan="7" scope="colgroup">Seeing what happened</th></tr>
+              <tr><td>Cost &amp; token reporting</td><td class="y">Yes</td><td class="y">Yes</td><td class="y">Yes</td><td class="n">No</td><td class="y">Yes</td><td class="y">Yes</td></tr>
+              <tr><td>Agents supported</td><td class="y">16+</td><td>1</td><td>1</td><td>1</td><td class="n">n/a</td><td class="p">5</td></tr>
+              <tr><td>Web dashboard</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td>Some</td><td class="y">Yes</td><td class="y">Yes</td></tr>
+              <tr><td>Status-bar integration</td><td>Some</td><td class="y">Yes</td><td>Some</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
+
+              <tr class="group"><th colspan="7" scope="colgroup">Stopping it before it runs</th></tr>
+              <tr><td>Blocks on a dollar limit</td><td class="n">No</td><td class="p">One run</td><td class="y">Yes</td><td class="n">No</td><td class="y">Yes</td><td class="y">Yes</td></tr>
+              <tr><td>Blocks dangerous commands</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td><td class="n">No</td><td class="y">Yes</td></tr>
+              <tr><td><strong>Blocks on a token budget</strong></td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
+              <tr><td><strong>Limits that outlive the session</strong></td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td><td class="n">No</td><td class="y">Yes</td><td class="y">Yes</td></tr>
+              <tr><td><strong>Blocks on your 5-hour window</strong></td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
+              <tr><td><strong>Approvals scoped to the exact input</strong></td><td class="n">No</td><td class="p">Prompt</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
+
+              <tr class="group"><th colspan="7" scope="colgroup">Knowing before it happens</th></tr>
+              <tr><td><strong>Forecasts when you&rsquo;ll run out</strong></td><td class="p">Some</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
+              <tr><td>Alerts to Slack or Discord</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td><td class="y">Yes</td></tr>
+              <tr><td><strong>The agent can query its own usage</strong></td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
+
+              <tr class="group"><th colspan="7" scope="colgroup">Practicalities</th></tr>
+              <tr><td>Useful on a subscription plan</td><td class="y">Yes</td><td class="y">Yes</td><td class="p">Inert</td><td class="y">Yes</td><td class="n">No</td><td class="y">Yes</td></tr>
+              <tr><td>Team-wide limits</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td><td class="n">No</td></tr>
+              <tr><td>No proxy or API-key change</td><td class="y">Yes</td><td class="y">Yes</td><td class="y">Yes</td><td class="y">Yes</td><td class="n">No</td><td class="y">Yes</td></tr>
+              <tr><td>Secret redaction, unit-tested</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td>Varies</td><td class="y">Yes</td></tr>
             </tbody>
           </table>
         </div>
         <p class="section-lede" style="margin-top:20px">
-          Only want cost reporting?
-          <a href="https://github.com/ryoppippi/ccusage">ccusage</a> is excellent at it and
-          supports 16+ agents. Only want a daily dollar cap?
-          <a href="https://www.npmjs.com/package/cost-guardian">cost-guardian</a> does that in
-          pure bash. AgentObs is for when a dollar figure is not the only thing you need to
-          stop.
+          <strong>Who each column is.</strong> Cost trackers:
+          <a href="https://github.com/ryoppippi/ccusage">ccusage</a>,
+          <a href="https://github.com/Maciek-roboblog/Claude-Code-Usage-Monitor">Claude Code
+          Usage Monitor</a>. Built-in: <code>/usage</code> and
+          <code>--max-budget-usd</code>. Budget blockers:
+          <a href="https://www.npmjs.com/package/cost-guardian">cost-guardian</a>. Security
+          hooks: <a href="https://github.com/karanb192/claude-code-hooks">claude-code-hooks</a>.
+          Gateways: <a href="https://docs.litellm.ai">LiteLLM</a>, Portkey, Bifrost.
+        </p>
+        <!--
+          Naming the cases where someone should pick a competitor costs one
+          paragraph and buys the rest of the table its credibility. A reader who
+          finds their own case listed honestly is likelier to believe the rows
+          where we win.
+        -->
+        <p class="section-lede" style="margin-top:14px">
+          <strong>Use something else when it fits better.</strong> If you only want reporting,
+          ccusage is excellent and reads 16+ agents to our 5. If you need one limit across a
+          team, a gateway does that and we do not. If a single scripted run is all you cap,
+          Claude Code&rsquo;s own <code>--max-budget-usd</code> is free and already installed
+          &mdash; though it is print-mode only, one session, and gone when the process exits.
+        </p>
+        <p class="section-lede" style="margin-top:14px">
+          AgentObs is for the rest: a limit that survives the session, denominated in tokens
+          when your plan has no dollar cost, plus the command policy and approvals that a
+          spend cap cannot express and a gateway never sees.
         </p>
       </section>
 

@@ -697,6 +697,49 @@ img.brand-mark {
   content: '\2013 ';
 }
 
+/* A caption states the table's method. A comparison whose method is hidden is
+   an advertisement, so this one says it names categories and includes rows we
+   lose. */
+.compare-caption {
+  caption-side: top;
+  text-align: left;
+  padding: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-muted);
+  max-width: 74ch;
+}
+
+/* Grouping rows by the question they answer - seeing, stopping, knowing -
+   turns eighteen flat rows into four readable ideas, and stops the eye from
+   reading a long column of "No" as a rigged table. */
+.compare tr.group th {
+  padding: 20px 14px 8px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  font-weight: 650;
+  color: var(--text-primary);
+  background: var(--raised);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.compare tbody tr.group:first-child th {
+  padding-top: 12px;
+}
+
+/* A qualified answer is neither a yes nor a no, and flattening it to either
+   would misrepresent a competitor. */
+.compare .p {
+  color: var(--text-secondary);
+  font-weight: 560;
+}
+.compare .p::before {
+  content: '~ ';
+  color: var(--text-muted);
+}
+
 /* FAQ
    Native <details> rather than JS: it is keyboard accessible, findable with
    the browser's own in-page search when open, and degrades to plain visible
