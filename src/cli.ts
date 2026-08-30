@@ -132,6 +132,36 @@ the PreToolUse hook.`,
       await exportData(opts);
     });
 
+  const budget = program
+    .command('budget')
+    .description('Spend limits - warn or block when an agent passes a threshold')
+    .action(async () => {
+      const { budgetStatus } = await import('./commands/budget.js');
+      await budgetStatus();
+    });
+
+  budget
+    .command('set')
+    .description('Set a spend limit')
+    .option('--daily <usd>', 'daily limit in USD')
+    .option('--weekly <usd>', 'weekly limit in USD')
+    .option('--monthly <usd>', 'monthly limit in USD')
+    .option('--block', 'refuse tool calls past the limit (default: warn only)', false)
+    .option('--scope <path>', 'apply only to sessions under this directory')
+    .action(async (opts) => {
+      const { budgetSet } = await import('./commands/budget.js');
+      await budgetSet(opts);
+    });
+
+  budget
+    .command('remove')
+    .description('Remove a budget')
+    .argument('<id>', 'budget id, id prefix, or period name')
+    .action(async (id: string) => {
+      const { budgetRemove } = await import('./commands/budget.js');
+      await budgetRemove(id);
+    });
+
   const policy = program.command('policy').description('Guardrail policy management');
 
   policy

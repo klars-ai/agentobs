@@ -76,3 +76,34 @@ CREATE INDEX IF NOT EXISTS idx_sessions_started     ON sessions(started_at);
 CREATE INDEX IF NOT EXISTS idx_sessions_unsynced    ON sessions(synced_at) WHERE synced_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_policy_tool_call     ON policy_decisions(tool_call_id);
 CREATE INDEX IF NOT EXISTS idx_policy_decided       ON policy_decisions(decided_at);
+
+-- Budget limits. Kept as a table rather than a config file so the hook can
+-- read the current spend and the limit in one place, on the hot path.
+CREATE TABLE IF NOT EXISTS budgets (
+  id           TEXT PRIMARY KEY,
+  period       TEXT NOT NULL,           -- daily | weekly | monthly
+  limit_usd    REAL NOT NULL,
+  -- "warn" notifies and lets the call through; "block" refuses further tool
+  -- calls once the limit is crossed. Blocking spend is the same idea as
+  -- blocking a dangerous command, applied to money.
+  action       TEXT NOT NULL DEFAULT 'warn',
+  scope        TEXT,                    -- null = all projects, else a cwd prefix
+  created_at   TEXT NOT NULL,
+  updated_at   TEXT NOT NULL
+);
+
+-- One row per time a budget threshold was crossed, so a warning fires once
+-- per period instead of on every subsequent tool call.
+CREATE TABLE IF NOT EXISTS budget_events (
+  id           TEXT PRIMARY KEY,
+  budget_id    TEXT NOT NULL REFERENCES budgets(id),
+  period_key   TEXT NOT NULL,           -- e.g. 2026-08-30 for a daily budget
+  spent_usd    REAL NOT NULL,
+  limit_usd    REAL NOT NULL,
+  action       TEXT NOT NULL,
+  created_at   TEXT NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_budget_events_once
+  ON budget_events(budget_id, period_key);
+CREATE INDEX IF NOT EXISTS idx_sessions_cwd ON sessions(cwd);

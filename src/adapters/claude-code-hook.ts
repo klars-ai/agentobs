@@ -36,6 +36,7 @@ import {
   startSession,
 } from '../core/repo.js';
 import { contextFromToolInput, evaluate, loadPolicy } from '../core/policy-engine.js';
+import { blockingBudget, checkBudgets } from '../core/budget.js';
 import { attachTranscriptUsage } from './transcript.js';
 
 const AGENT_NAME = 'claude-code';
@@ -130,6 +131,47 @@ export function handleHook(payload: HookPayload): HookResult {
       const toolName = payload.tool_name ?? 'unknown';
       const id = toolCallId(payload);
       ensureSession(db, sessionId, AGENT_NAME, payload.cwd ?? null);
+
+      // Budgets first: an exceeded hard limit stops everything, however
+      // benign the individual command looks.
+      try {
+        const budgets = checkBudgets(db);
+        const overspent = blockingBudget(budgets);
+        if (overspent) {
+          beginToolCall(db, {
+            id,
+            sessionId,
+            toolName,
+            input: payload.tool_input,
+            status: 'blocked',
+          });
+          recordPolicyDecision(db, {
+            toolCallId: id,
+            sessionId,
+            toolName,
+            ruleMatched: `budget:${overspent.budget.period}`,
+            decision: 'block',
+            reason: `spend $${overspent.spent.toFixed(2)} exceeds the $${overspent.limit.toFixed(2)} ${overspent.budget.period} limit`,
+          });
+          return {
+            stdout: JSON.stringify({
+              hookSpecificOutput: {
+                hookEventName: 'PreToolUse',
+                permissionDecision: 'deny',
+                permissionDecisionReason:
+                  `AgentObs budget reached: $${overspent.spent.toFixed(2)} spent against a ` +
+                  `$${overspent.limit.toFixed(2)} ${overspent.budget.period} limit. ` +
+                  `Raise it with "agentobs budget set --${overspent.budget.period} <amount>" ` +
+                  `or remove it with "agentobs budget remove ${overspent.budget.period}".`,
+              },
+            }),
+            exitCode: 0,
+          };
+        }
+      } catch (err) {
+        // A budget check must never wedge the agent - fail open, like policy.
+        debugLog(`budget check failed: ${String(err)}`);
+      }
 
       const { policy, errors } = loadPolicy();
       for (const err of errors) debugLog(`policy: ${err}`);
