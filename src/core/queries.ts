@@ -10,6 +10,23 @@ import type { DatabaseSync } from 'node:sqlite';
 export type Range = 'today' | '7d' | '30d' | 'all';
 
 /** Start of a range as an ISO string, or null for "all". */
+/**
+ * An explicit date window, which beats a fixed range when investigating
+ * something specific - "what did last Tuesday cost".
+ */
+export interface DateWindow {
+  since?: string | null;
+  until?: string | null;
+}
+
+/** Parses YYYY-MM-DD or an ISO timestamp into an ISO string. */
+export function parseDate(value: string | undefined, endOfDay = false): string | null {
+  if (!value) return null;
+  const bare = /^\d{4}-\d{2}-\d{2}$/.test(value);
+  const d = new Date(bare ? `${value}T${endOfDay ? '23:59:59.999' : '00:00:00.000'}` : value);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
 export function rangeStart(range: Range): string | null {
   const now = new Date();
   switch (range) {

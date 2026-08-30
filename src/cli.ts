@@ -47,7 +47,9 @@ export function buildProgram(): Command {
     .command('stats')
     .description('Print usage totals')
     .option('--today', 'today only')
-    .option('--since <range>', 'one of: today, 7d, 30d, all', '7d')
+    .option('--since <range>', 'today, 7d, 30d, all, or a YYYY-MM-DD date', '7d')
+    .option('--until <date>', 'end of an explicit date window (YYYY-MM-DD)')
+    .option('--breakdown', 'add a per-model cost breakdown', false)
     .option('--session <id>', 'restrict to one session')
     .option('--json', 'emit JSON instead of a table', false)
     .action(async (opts) => {
@@ -95,6 +97,29 @@ On Windows, cmd.exe builtins (dir, echo, type) need: agentobs run -- cmd /c dir`
     .action(async (command: string[] | undefined, opts) => {
       const { run } = await import('./commands/run.js');
       await run(command ?? [], opts);
+    });
+
+  program
+    .command('agents')
+    .description('Which coding agents are on this machine, and import from them')
+    .option('--import', 'import from every detected agent', false)
+    .option('--agent <id>', 'restrict to one agent id')
+    .option('--days <n>', 'only logs modified in the last n days', '30')
+    .option('--json', 'emit JSON', false)
+    .addHelpText(
+      'after',
+      `
+Claude Code's format is verified against real transcripts. The others are
+declared from published paths and marked [unverified] until someone
+confirms them - a tool that claims support and silently records nothing
+is worse than one that admits what it cannot read.
+
+Add an agent by writing a source definition into ~/.agentobs/sources.json;
+a definition with an existing id replaces the built-in one.`,
+    )
+    .action(async (opts) => {
+      const { agents } = await import('./commands/agents.js');
+      await agents(opts);
     });
 
   program

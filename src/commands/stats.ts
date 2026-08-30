@@ -2,13 +2,16 @@
  * `agentobs stats` - terminal summary.
  */
 import { openDb } from '../core/db.js';
-import { getSummary, getToolsBreakdown, type Range } from '../core/queries.js';
+import { getModels, getSummary, getToolsBreakdown, type Range } from '../core/queries.js';
 
 export interface StatsOptions {
   today?: boolean;
   since?: string;
+  until?: string;
   session?: string;
   json?: boolean;
+  /** Per-model cost breakdown. */
+  breakdown?: boolean;
 }
 
 function toRange(opts: StatsOptions): Range {
@@ -74,6 +77,21 @@ AgentObs · ${range}
     console.log(
       `\n  Note: ${summary.uncosted_calls} call(s) have no price for their model.\n        Add it to ~/.agentobs/pricing.json to include them in the total.`,
     );
+  }
+
+  if (opts.breakdown) {
+    const models = getModels(db, range);
+    if (models.length > 0) {
+      console.log('');
+      console.log('  Model                          Calls        Tokens       Cost');
+      console.log('  ' + '-'.repeat(62));
+      for (const m of models.slice(0, 10)) {
+        console.log(
+          `  ${m.model.slice(0, 28).padEnd(28)} ${String(m.calls).padStart(7)} ` +
+            `${m.tokens.toLocaleString().padStart(13)} ${money(m.cost_usd).padStart(10)}`,
+        );
+      }
+    }
   }
 
   if (tools.length > 0) {

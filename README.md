@@ -309,18 +309,48 @@ Two deliberate behaviours worth knowing:
 | Agent | How | Detail | Needs setup? |
 | --- | --- | --- | --- |
 | **Claude Code** | `agentobs import` | **Rich** — every tool call, tokens, cost | **No** |
-| **Claude Code** | Native hooks | **Rich**, live, and can *block* calls | Yes — hook config |
+| **Claude Code** | Native hooks | **Rich**, live, and can *block* calls | Yes — `init` writes them |
+| Copilot CLI, Codex, Gemini CLI, OpenCode | `agentobs agents --import` | Log-based, **format unverified** | No |
 | Any CLI agent | `agentobs run -- <cmd>` | **Coarse** — duration and exit code only | No |
 | Custom / in-house | `agentobs watch <file>` | **Rich**, if it writes JSONL | No |
 
-`import` and hooks read the same underlying data. The difference is timing:
-hooks see a call *before* it runs, which is what makes blocking possible;
-`import` reads the transcript afterwards. If you only want observability,
-`import` is enough and needs no configuration.
+```bash
+agentobs agents            # what is on this machine
+agentobs agents --import   # read from everything found
+```
 
-The dashboard labels coarse sessions as `coarse` rather than implying detail it
-does not have, and `agentobs stats` explains why a coarse-only range shows zero
-tool calls.
+**On "unverified":** only Claude Code's format has been checked against real
+transcripts. The other built-in sources were declared from published paths,
+and are labelled `[unverified]` until someone confirms them against a real
+file. A tool that claims support and then silently records nothing is worse
+than one that says what it cannot read — so if a source yields no usage,
+`agents --import` says exactly that instead of reporting a confident zero.
+
+**Adding your own agent** takes no code. Drop a definition into
+`~/.agentobs/sources.json` naming where the logs live and which field names
+that agent uses:
+
+```json
+{
+  "sources": [{
+    "id": "my-agent",
+    "label": "My Agent",
+    "roots": [".myagent/sessions"],
+    "fileSuffix": ".jsonl",
+    "status": "verified",
+    "fields": {
+      "inputTokens": ["usage.input_tokens"],
+      "outputTokens": ["usage.output_tokens"],
+      "model": ["model"],
+      "timestamp": ["timestamp"],
+      "toolName": ["tool.name"]
+    }
+  }]
+}
+```
+
+A definition with a built-in's id replaces it — which is how you fix a field
+map we got wrong without waiting for a release.
 
 ### A note on cost accuracy
 
