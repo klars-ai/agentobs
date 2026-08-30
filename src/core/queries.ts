@@ -389,3 +389,103 @@ export function getPolicyDecisions(db: DatabaseSync, opts: { limit?: number } = 
     )
     .all(limit);
 }
+
+export interface ProjectRow {
+  project: string;
+  cwd: string;
+  sessions: number;
+  tool_calls: number;
+  errors: number;
+  cost_usd: number | null;
+  tokens: number;
+  last_seen: string;
+}
+
+/**
+ * Spend grouped by working directory - "which repo is burning my budget".
+ *
+ * cwd is already recorded per session, so this needs no new data; the display
+ * name is the last path segment, since a full absolute path is unreadable in
+ * a table and often identical up to the final directory.
+ */
+export function getProjects(db: DatabaseSync, range: Range): ProjectRow[] {
+  const since = rangeStart(range);
+  const where = since ? 'WHERE s.started_at >= ?' : '';
+  const args = since ? [since] : [];
+
+  const rows = db
+    .prepare(
+      `SELECT COALESCE(s.cwd, '(unknown)') AS cwd,
+              COUNT(DISTINCT s.id) AS sessions,
+              COALESCE(SUM(s.tool_call_count), 0) AS tool_calls,
+              COALESCE(SUM(s.error_count), 0) AS errors,
+              SUM(s.total_cost_usd) AS cost_usd,
+              COALESCE(SUM(s.total_tokens_in + s.total_tokens_out), 0) AS tokens,
+              MAX(s.started_at) AS last_seen
+         FROM sessions s
+         ${where}
+        GROUP BY COALESCE(s.cwd, '(unknown)')`,
+    )
+    .all(...args) as unknown as Array<Omit<ProjectRow, 'project'>>;
+
+  // Merge paths that differ only by case or separator. Windows reports the
+  // same directory as both "i:\AgentObs" and "I:/AgentObs" depending on how
+  // the process was launched, which otherwise splits one project into several
+  // rows and makes the cost share meaningless.
+  const merged = new Map<string, ProjectRow>();
+  for (const r of rows) {
+    const key = r.cwd.replace(/[\/]+/g, '/').replace(/\/+$/, '').toLowerCase();
+    const existing = merged.get(key);
+    if (existing) {
+      existing.sessions += r.sessions;
+      existing.tool_calls += r.tool_calls;
+      existing.errors += r.errors;
+      existing.tokens += r.tokens;
+      if (r.cost_usd !== null) existing.cost_usd = (existing.cost_usd ?? 0) + r.cost_usd;
+      if (r.last_seen > existing.last_seen) existing.last_seen = r.last_seen;
+    } else {
+      merged.set(key, {
+        ...r,
+        project: r.cwd.replace(/[\/]+$/, '').split(/[\/]/).pop() || r.cwd,
+      });
+    }
+  }
+
+  return [...merged.values()].sort(
+    (a, b) => (b.cost_usd ?? -1) - (a.cost_usd ?? -1) || b.tool_calls - a.tool_calls,
+  );
+}
+
+export interface SessionDetail {
+  session: SessionRow | undefined;
+  calls: ToolCallRow[];
+}
+
+/** One session and its tool calls in order - the "what happened here?" view. */
+export function getSessionDetail(db: DatabaseSync, sessionId: string): SessionDetail {
+  const session = db
+    .prepare(
+      `SELECT id, agent_name, started_at, ended_at, cwd, fidelity, tool_call_count,
+              error_count, blocked_count, total_cost_usd, total_tokens_in,
+              total_tokens_out, exit_code
+         FROM sessions WHERE id = ?`,
+    )
+    .get(sessionId) as unknown as SessionRow | undefined;
+
+  const calls = db
+    .prepare(
+      `SELECT tc.id, tc.session_id, s.agent_name, tc.tool_name, tc.started_at,
+              tc.duration_ms, tc.status, tc.input_summary, tc.output_summary,
+              tc.cost_usd, tc.error_message,
+              (SELECT pd.rule_matched FROM policy_decisions pd
+                WHERE pd.tool_call_id = tc.id
+                ORDER BY pd.decided_at DESC LIMIT 1) AS rule_matched
+         FROM tool_calls tc
+         LEFT JOIN sessions s ON s.id = tc.session_id
+        WHERE tc.session_id = ?
+        ORDER BY tc.started_at ASC`,
+    )
+    .all(sessionId) as unknown as ToolCallRow[];
+
+  return { session, calls };
+}

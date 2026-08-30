@@ -22,6 +22,8 @@ import { openDb } from '../core/db.js';
 import {
   getPolicyDecisions,
   getRecentToolCalls,
+  getProjects,
+  getSessionDetail,
   getSessions,
   getSparklines,
   getSummary,
@@ -30,6 +32,7 @@ import {
   type Range,
 } from '../core/queries.js';
 import { loadPolicy } from '../core/policy-engine.js';
+import { checkBudgets } from '../core/budget.js';
 
 const PUBLIC_DIR = join(dirname(fileURLToPath(import.meta.url)), 'public');
 
@@ -142,6 +145,21 @@ export function createDashboardServer(opts: ServerOptions) {
               limit: Number(url.searchParams.get('limit') ?? 50),
             }),
           });
+          return;
+        case '/api/projects':
+          json(res, { projects: getProjects(db, range) });
+          return;
+        case '/api/session': {
+          const id = url.searchParams.get('id');
+          if (!id) {
+            json(res, { error: 'missing id' }, 400);
+            return;
+          }
+          json(res, getSessionDetail(db, id));
+          return;
+        }
+        case '/api/budgets':
+          json(res, { budgets: checkBudgets(db, { record: false }) });
           return;
         case '/api/policy':
           json(res, {

@@ -132,6 +132,26 @@ the PreToolUse hook.`,
       await exportData(opts);
     });
 
+  program
+    .command('digest')
+    .description('A readable period summary: spend, top tools, projects, budgets')
+    .option('--since <range>', 'today, 7d, 30d, all', '7d')
+    .option('--json', 'emit JSON instead of prose', false)
+    .action(async (opts) => {
+      const { digest } = await import('./commands/digest.js');
+      await digest(opts);
+    });
+
+  program
+    .command('projects')
+    .description('Spend and activity grouped by working directory')
+    .option('--since <range>', 'today, 7d, 30d, all', '7d')
+    .option('--json', 'emit JSON', false)
+    .action(async (opts) => {
+      const { projects } = await import('./commands/projects.js');
+      await projects(opts);
+    });
+
   const budget = program
     .command('budget')
     .description('Spend limits - warn or block when an agent passes a threshold')
