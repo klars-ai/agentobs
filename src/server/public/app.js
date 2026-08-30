@@ -25,6 +25,23 @@ const RANGE_LABEL = {
   all: 'all time',
 };
 
+/**
+ * Label for any range, including the `<n>m` windows.
+ *
+ * A plain map lookup returned blank for those, leaving "Spend" with no period
+ * after it - which reads as a rendering bug rather than a short window.
+ */
+function rangeLabel(range) {
+  const m = /^(\d+)m$/.exec(String(range));
+  if (m) {
+    const mins = Number(m[1]);
+    if (mins < 60) return `last ${mins} min`;
+    const hours = mins / 60;
+    return `last ${Number.isInteger(hours) ? hours : hours.toFixed(1)}h`;
+  }
+  return RANGE_LABEL[range] ?? String(range);
+}
+
 /* ---------- formatting ---------- */
 
 /**
@@ -430,7 +447,7 @@ function renderSummary(s) {
   document.getElementById('stat-calls').textContent = count(s.tool_calls);
   document.getElementById('stat-calls-sub').textContent = `${count(s.tokens_in + s.tokens_out)} tokens`;
   document.getElementById('stat-sessions').textContent = count(s.sessions);
-  document.getElementById('stat-sessions-sub').textContent = RANGE_LABEL[s.range] ?? '';
+  document.getElementById('stat-sessions-sub').textContent = rangeLabel(s.range);
   document.getElementById('stat-errors').textContent = percent(s.error_rate);
   document.getElementById('stat-errors-sub').textContent = `${count(s.errors)} failed`;
   document.getElementById('stat-blocked').textContent = count(s.blocked);
@@ -447,7 +464,7 @@ function renderSummary(s) {
   drawAllSparks();
 
   for (const el of document.querySelectorAll('[data-range-label]')) {
-    el.textContent = RANGE_LABEL[state.range] ?? '';
+    el.textContent = rangeLabel(state.range);
   }
 }
 
@@ -778,8 +795,40 @@ function bindGroup(selector, attr, onPick) {
 
 bindGroup('.rangeset button', 'range', (value) => {
   state.range = value;
+  // The two controls describe the same thing, so picking a named range has to
+  // clear the minute select - otherwise both look active and neither is
+  // trustworthy.
+  const select = document.getElementById('range-minutes');
+  if (select) select.value = '';
   refresh();
 });
+
+// Short windows live in a select rather than the button group; the same rule
+// applies in reverse, so choosing one clears the pressed button.
+const rangeSelect = document.getElementById('range-minutes');
+if (rangeSelect) {
+  rangeSelect.addEventListener('change', () => {
+    const value = rangeSelect.value;
+    if (!value) {
+      // Back to the default rather than leaving the page in a state with no
+      // range selected at all.
+      state.range = 'today';
+      setPressed('.rangeset button', 'range', 'today');
+      refresh();
+      return;
+    }
+    state.range = value;
+    setPressed('.rangeset button', 'range', null);
+    refresh();
+  });
+}
+
+/** Marks one button in a group as pressed, or none when value is null. */
+function setPressed(selector, attr, value) {
+  for (const btn of document.querySelectorAll(selector)) {
+    btn.setAttribute('aria-pressed', String(btn.dataset[attr] === value));
+  }
+}
 
 bindGroup('.filterset button', 'status', (value) => {
   state.status = value;

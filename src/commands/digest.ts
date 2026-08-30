@@ -12,6 +12,7 @@ import {
   getSummary,
   getTimeline,
   getToolsBreakdown,
+  rangeLabel,
   type Range,
 } from '../core/queries.js';
 import { checkBudgets } from '../core/budget.js';
@@ -48,7 +49,7 @@ export async function digest(opts: DigestOptions = {}): Promise<void> {
     return;
   }
 
-  const label = { today: 'Today', '7d': 'This week', '30d': 'This month', all: 'All time' }[range];
+  const label = rangeLabel(range);
   const busiest = [...timeline].sort((a, b) => b.calls - a.calls)[0];
   const priciest = [...timeline]
     .filter((t) => t.cost_usd !== null)

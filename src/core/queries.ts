@@ -7,7 +7,41 @@
  */
 import type { DatabaseSync } from 'node:sqlite';
 
-export type Range = 'today' | '7d' | '30d' | 'all';
+/**
+ * A reporting window.
+ *
+ * The named ranges cover the common cases; `${n}m` covers "what has happened
+ * in the last few minutes", which is the question someone asks while a run is
+ * actually in progress and no calendar-based range can answer.
+ */
+export type Range = 'today' | '7d' | '30d' | 'all' | `${number}m`;
+
+/** Human label for a range, used wherever one is printed or shown. */
+export function rangeLabel(range: Range): string {
+  const minutes = rangeMinutes(range);
+  if (minutes !== null) {
+    if (minutes < 60) return `Last ${minutes} min`;
+    const hours = minutes / 60;
+    return `Last ${Number.isInteger(hours) ? hours : hours.toFixed(1)}h`;
+  }
+  const named: Record<string, string> = {
+    today: 'Today',
+    '7d': 'This week',
+    '30d': 'This month',
+    all: 'All time',
+  };
+  return named[range] ?? range;
+}
+
+/** Minutes in a `<n>m` range, or null when this is a named range. */
+export function rangeMinutes(range: Range): number | null {
+  const m = /^(\d+)m$/.exec(range);
+  if (!m) return null;
+  const minutes = Number(m[1]);
+  // Bounded: a negative or absurd window is a caller bug, and silently
+  // returning everything would look like the filter simply did nothing.
+  return Number.isFinite(minutes) && minutes > 0 && minutes <= 60 * 24 * 7 ? minutes : null;
+}
 
 /** Start of a range as an ISO string, or null for "all". */
 /**
@@ -29,6 +63,10 @@ export function parseDate(value: string | undefined, endOfDay = false): string |
 
 export function rangeStart(range: Range): string | null {
   const now = new Date();
+
+  const minutes = rangeMinutes(range);
+  if (minutes !== null) return new Date(now.getTime() - minutes * 60_000).toISOString();
+
   switch (range) {
     case 'today': {
       const d = new Date(now);

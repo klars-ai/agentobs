@@ -20,7 +20,7 @@ const home = mkdtempSync(join(tmpdir(), 'agentobs-daily-'));
 process.env.AGENTOBS_HOME = home;
 
 const { openDb } = await import('./db.js');
-const { getDaily } = await import('./queries.js');
+const { getDaily, rangeMinutes, rangeLabel, rangeStart } = await import('./queries.js');
 
 test.after(() => {
   try {
@@ -111,4 +111,36 @@ test('errors and blocked calls are counted per day', () => {
   const totalBlocked = rows.reduce((a, r) => a + r.blocked, 0);
   assert.equal(totalErrors, 1);
   assert.equal(totalBlocked, 1);
+});
+
+test('a <n>m range resolves to that many minutes ago', () => {
+  const before = Date.now();
+  const start = Date.parse(rangeStart('20m') as string);
+  const minutesBack = (before - start) / 60000;
+  assert.ok(Math.abs(minutesBack - 20) < 0.5, `expected ~20 minutes, got ${minutesBack}`);
+});
+
+test('an out-of-bounds minute window is refused, not clamped', () => {
+  // A crafted ?range=99999m must not turn into an unbounded scan, and
+  // silently returning everything would look like the filter did nothing.
+  assert.equal(rangeMinutes('99999m' as never), null);
+  assert.equal(rangeMinutes('0m' as never), null);
+  assert.equal(rangeMinutes('-5m' as never), null);
+  assert.equal(rangeMinutes('abc' as never), null);
+  assert.equal(rangeMinutes('today'), null, 'a named range has no minute count');
+});
+
+test('minute windows are labelled in the unit a reader thinks in', () => {
+  assert.equal(rangeLabel('5m' as never), 'Last 5 min');
+  assert.equal(rangeLabel('60m' as never), 'Last 1h');
+  assert.equal(rangeLabel('300m' as never), 'Last 5h');
+  assert.equal(rangeLabel('today'), 'Today');
+});
+
+test('a short window returns only recent rows', () => {
+  // Everything seeded by the tests above is at least a day old, so a 5-minute
+  // window must come back empty rather than falling through to all rows.
+  const rows = getDaily(db, '5m' as never);
+  const calls = rows.reduce((a, r) => a + r.calls, 0);
+  assert.equal(calls, 0, 'a 5-minute window must not include day-old calls');
 });

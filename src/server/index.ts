@@ -29,6 +29,7 @@ import {
   getSparklines,
   getDaily,
   getSummary,
+  rangeMinutes,
   getTimeline,
   getToolsBreakdown,
   type Range,
@@ -64,7 +65,11 @@ export interface ServerOptions {
 }
 
 function parseRange(value: string | null): Range {
-  return value === 'today' || value === '7d' || value === '30d' || value === 'all' ? value : '7d';
+  if (value === 'today' || value === '7d' || value === '30d' || value === 'all') return value;
+  // A minute window is validated by rangeMinutes rather than trusted, so a
+  // crafted ?range=99999m cannot turn into an unbounded scan.
+  if (value && rangeMinutes(value as Range) !== null) return value as Range;
+  return 'today';
 }
 
 function json(res: ServerResponse, body: unknown, status = 200): void {

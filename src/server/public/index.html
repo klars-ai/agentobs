@@ -21,6 +21,25 @@
       </div>
 
       <div class="topbar-actions">
+        <!--
+          A select rather than more buttons: these short windows are a family of
+          related choices, and six more buttons would crowd the bar on a narrow
+          window while burying the ranges people use daily.
+        -->
+        <label class="live-select">
+          <span class="sr">Recent window</span>
+          <select id="range-minutes" aria-label="Recent window">
+            <option value="">Live…</option>
+            <option value="1m">Last 1 min</option>
+            <option value="5m">Last 5 min</option>
+            <option value="10m">Last 10 min</option>
+            <option value="20m">Last 20 min</option>
+            <option value="30m">Last 30 min</option>
+            <option value="60m">Last 1 hour</option>
+            <option value="120m">Last 2 hours</option>
+            <option value="300m">Last 5 hours</option>
+          </select>
+        </label>
         <div class="rangeset" role="group" aria-label="Time range">
           <button type="button" data-range="today" aria-pressed="true">Today</button>
           <button type="button" data-range="7d">7 days</button>
