@@ -3,6 +3,96 @@
 All notable changes to this project are documented here. Versions follow
 [semantic versioning](https://semver.org). Dates are UTC.
 
+## [0.17.0] — 2026-08-30
+
+### Added
+- **Live windows.** A dropdown for the last 1, 5, 10, 20, 30, 60, 120 or 300
+  minutes, for watching a run while it happens. None of the calendar-based
+  ranges could answer "what has happened in the last few minutes".
+
+### Fixed
+- Range labels were looked up in a plain map, so a minute window rendered as
+  "Spend" with no period after it.
+- The dashboard stylesheet had no `.sr` rule, so a visually-hidden label
+  rendered as visible text.
+
+## [0.16.0] — 2026-08-30
+
+### Added
+- **Tool descriptions on hover.** A row reading "Bash 11,266 calls" answers
+  nothing for someone who has not used these tools. Descriptions say what the
+  tool does and why the agent reaches for it. An unrecognised tool gets no
+  tooltip rather than a guessed one; an MCP tool names its server and says
+  plainly that we do not know what it does.
+
+## [0.15.0] — 2026-08-30
+
+### Added
+- **Optimisation hints**, on the dashboard and at the end of `agentobs stats`.
+  Catches a tool failing often, one tool dominating cost, the same call repeated
+  with identical input, sessions over 2M input tokens, and a dollar budget that
+  cannot bind on a subscription. Every hint names the number that triggered it,
+  and nothing is shown when there is nothing worth saying.
+
+### Changed
+- The dashboard opens on **today** rather than the last 7 days. A week averages
+  a quiet Sunday into a heavy Tuesday and hides what someone opened the
+  dashboard to check.
+
+## [0.14.1] — 2026-08-30
+
+### Fixed
+- **The Daily tab crashed the server.** Its route ended with `break` where every
+  other case uses `return`, so it fell through, wrote a second response and
+  killed the process. Added route smoke tests that hit every route and then
+  check the server is still answering — a route that crashes fails on the *next*
+  request, not its own.
+
+## [0.14.0] — 2026-08-30
+
+### Added
+- **Daily tab**: one row per calendar day, with calls, errors, sessions, tokens
+  and cost. Built from tool calls rather than sessions, so a run spanning five
+  days lands on the days it happened rather than all on the day it began. Quiet
+  days are shown rather than skipped.
+
+## [0.13.3] — 2026-08-30
+
+### Added
+- **Per-call cost attribution.** Measured across 25 real transcripts, 4,088 of
+  4,088 messages issuing a tool call issued exactly one, so that message's cost
+  belongs to that call exactly. A message issuing several leaves them uncosted
+  rather than dividing the total. Uncosted calls fell from 100% to 4%.
+
+### Fixed
+- `completeToolCall` with no token counts stored `$0.00` rather than null,
+  because `computeCost` coerces nulls to zero. An unattributable call now reads
+  as unknown, not free.
+
+## [0.13.2] — 2026-08-30
+
+### Added
+- **Plan detection.** Cost is computed at API list price, which is not a bill on
+  a subscription — a Max user saw "$5,525.61 this week" against a $100/month
+  plan. The headline now reads "API-equivalent usage" on a subscription and
+  stays "Spend" on an API key, with a line naming the plan and pointing at the
+  limit that actually binds.
+- `writeDefaultPricing` tops up an existing `pricing.json` with models it lacks.
+  The file was written once at install and never touched, so anyone who
+  installed before a model shipped had blank costs for it forever — with no
+  error, because an unpriced model reports blank by design.
+
+## [0.13.1] — 2026-08-30
+
+### Fixed
+- Hook installation ignored `CLAUDE_CONFIG_DIR` while the importer honoured it,
+  so a relocated Claude Code config got hooks written to a file Claude Code
+  never reads — and `init` reported success.
+- Skipping `PreToolUse` was reported like any other skip. It is the only hook
+  that can refuse a call, so without it budgets and policy are inert; `init` now
+  says so.
+- `stats` rendered `$3.50` as `$3.5000`.
+
 ## [0.13.0] — 2026-08-30
 
 ### Added

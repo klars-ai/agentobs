@@ -146,6 +146,7 @@ agentobs init                        Set up everything: db, hooks, policy, histo
 agentobs uninstall-hooks             Remove AgentObs's hooks from your settings
 agentobs import [--days n] [--all]   Import Claude Code transcripts (no hooks needed)
 agentobs dashboard [--port] [--host] Serve the dashboard (default 127.0.0.1:4300)
+agentobs stats --breakdown           Per-model cost breakdown
 agentobs stats [--today] [--since]   Print totals in the terminal
 agentobs run -- <command...>         Observe any command (coarse detail)
 agentobs watch <file.jsonl>          Ingest a JSONL agent log
@@ -179,6 +180,39 @@ agentobs daemon                      Warm process so hot paths skip Node startup
 agentobs digest                      A readable period summary
 agentobs projects                    Spend grouped by working directory
 ```
+
+---
+
+## What the cost figure means
+
+**On a subscription, it is not your bill.**
+
+AgentObs computes cost from token counts at API list price. On Pro, Max, Team
+or Enterprise you pay a flat fee, so that number is *what the same usage would
+cost on the API* — not money anyone charged you. A Max 5x user running long
+sessions can easily see four figures against a $100/month plan.
+
+The plan is detected from `~/.claude.json`, so the dashboard and `agentobs
+stats` label it honestly:
+
+```
+API-equivalent usage  $5525.61
+
+You pay a flat fee on Claude Max 5x — this is what the same usage
+would cost on the API, not a bill.
+```
+
+On an API key it says **Spend**, because there it really is.
+
+Two consequences worth knowing:
+
+- **Cache reads dominate.** Every turn re-sends the whole conversation, so a
+  long session pays for its own history repeatedly. On one real session, 99.3%
+  of the tokens were cache reads. That is why the number looks large, and why
+  `/clear` between unrelated tasks is the biggest saving most people have.
+- **A dollar budget cannot bind on a subscription.** Your cost is $0 as far as
+  billing is concerned. Use a token budget instead:
+  `agentobs budget set --block5h 200000 --tokens`.
 
 ---
 
@@ -495,6 +529,33 @@ If it is slow, adding an exclusion for your Node install directory and
 that avoids it - the cost is paid before AgentObs runs at all.
 
 ---
+
+## The dashboard
+
+`agentobs dashboard` serves it at `http://127.0.0.1:4300`.
+
+| Tab | What it answers |
+| --- | --- |
+| **Overview** | What is happening now — spend, calls, errors, and suggestions worth acting on |
+| **Daily** | One row per calendar day: which days were busy, which were expensive |
+| **Breakdown** | Where it goes, ranked by project, model and tool |
+| **Budgets** | How close each limit is, with a countdown when one is projected to arrive |
+| **Activity** | Individual tool calls, filterable by status |
+
+**Time range.** Buttons for Today, 7 days, 30 days and All, plus a **Live…**
+dropdown for the last 1, 5, 10, 20, 30, 60, 120 or 300 minutes — for watching a
+run while it happens. The short windows are only as fresh as your last import,
+so they are most useful with the hook installed.
+
+**Worth a look.** The overview surfaces hints drawn from the range you are
+viewing: a tool failing often, one tool dominating cost, the same call repeated
+with identical input, a session over 2M tokens, or a dollar budget that cannot
+bind on your plan. Each names the number that triggered it, and nothing appears
+when there is nothing worth saying.
+
+**Tool names explain themselves.** Hover any tool for a plain-English
+description of what it does and why the agent reaches for it. A tool we do not
+recognise gets no tooltip rather than a guessed one.
 
 ## Dashboard access
 

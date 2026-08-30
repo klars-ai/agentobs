@@ -57,7 +57,18 @@ for approval. AgentObs asks for the limit and enforces all four.
   request to Slack, Discord or a user-supplied endpoint. Opt-in with no
   default destination; payloads carry budget names and numbers, never tool
   inputs, and are redacted before sending.
-- **Dashboard.** A local web dashboard with light and dark themes.
+- **Dashboard.** A local web dashboard with light and dark themes. Tabs for
+  overview, day-by-day totals, breakdown by project/model/tool, budgets and
+  individual tool calls. Time ranges include live windows of the last 1 to 300
+  minutes, for watching a run in progress. Tool names carry a plain-English
+  description on hover.
+- **Optimisation hints.** Derived from the data being viewed: a tool failing
+  often, one tool dominating cost, an identical call repeated, a session over 2M
+  input tokens, or a dollar budget that cannot bind on a subscription. Each names
+  the number that triggered it; nothing is shown when there is nothing to say.
+- **Plan-aware cost labelling.** Cost is computed at API list price. On a
+  subscription that is not a bill, so the figure is labelled "API-equivalent
+  usage" and names the plan, rather than implying money was spent.
 
 ## Honesty commitments
 
@@ -71,7 +82,14 @@ These are design rules, not marketing:
   recording nothing.
 - An unpriced model renders as `-`, never `$0.00`. Unknown is not zero.
 - Cache reads are billed at 0.1x and counted separately from fresh input,
-  because summing them inflates totals by orders of magnitude.
+  because summing them inflates totals by orders of magnitude. They also
+  dominate most real totals - on one measured session, 99.3% of all tokens were
+  cache reads, because every turn re-sends the whole conversation.
+- Per-call cost is attributed only when a message issued exactly one tool call,
+  which is the case in practice. A message issuing several leaves them uncosted
+  rather than dividing the total.
+- A tool AgentObs does not recognise gets no description rather than a guessed
+  one. MCP servers contribute arbitrary names.
 
 ## Privacy
 

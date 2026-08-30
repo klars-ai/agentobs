@@ -119,6 +119,14 @@
     },
     {
       "@type": "Question",
+      "name": "Why does AgentObs show a large cost when I am on a Claude subscription?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "That figure is what the usage would cost at API list price, not a bill. On Pro, Max, Team or Enterprise you pay a flat fee, so AgentObs detects the plan and labels the number 'API-equivalent usage' rather than 'Spend'. It looks large because cache reads dominate: every turn re-sends the whole conversation, and on one measured session 99.3% of all tokens were cache reads. On a subscription the limit that actually binds is the rate-limit window, so use a token budget: agentobs budget set --block5h 200000 --tokens."
+      }
+    },
+    {
+      "@type": "Question",
       "name": "Does AgentObs send my data anywhere?",
       "acceptedAnswer": {
         "@type": "Answer",
@@ -317,6 +325,14 @@ agentobs budget set --block5h 200000 --tokens</code></pre>
               <code>agentobs notify set &lt;url&gt;</code> sends a breach to Slack, Discord or
               your own endpoint. Opt-in, no default destination, and the payload carries
               numbers — never your tool inputs.
+            </p>
+          </article>
+          <article>
+            <h3>Tells you what to do about it</h3>
+            <p>
+              The dashboard surfaces hints from your own data &mdash; a tool failing often, a
+              call repeated with identical input, a session large enough that re-sent context
+              dominates the bill. Each names the number behind it.
             </p>
           </article>
           <article>
@@ -539,6 +555,20 @@ agentobs budget set --block5h 200000 --tokens</code></pre>
               set in tokens:
               <code>agentobs budget set --block5h 200000 --tokens</code>. On a subscription your
               real constraint is the rate-limit window, not a bill.
+            </p>
+          </details>
+
+          <details>
+            <summary>Why does it say I spent thousands when my plan is $100?</summary>
+            <p>
+              Because that figure is what your usage <em>would</em> cost on the API, not what
+              you were charged. AgentObs detects your plan and labels it
+              &ldquo;API-equivalent usage&rdquo; on a subscription, keeping &ldquo;Spend&rdquo;
+              for API keys where it is real money. The number looks large because cache reads
+              dominate &mdash; every turn re-sends the whole conversation, and on one measured
+              session 99.3% of all tokens were cache reads. On a subscription, cap the thing
+              that actually binds you:
+              <code>agentobs budget set --block5h 200000 --tokens</code>.
             </p>
           </details>
 
