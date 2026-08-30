@@ -159,6 +159,7 @@ agentobs budget set --block5h 200000 --tokens    Watch your 5-hour window
 agentobs forecast [--watch]          When will you hit your limit?
 agentobs statusline                  Compact line for Claude Code's status bar
 agentobs mcp                         MCP server: let the agent query its own usage
+agentobs daemon                      Warm process so hot paths skip Node startup
 agentobs digest                      A readable period summary
 agentobs projects                    Spend grouped by working directory
 ```
@@ -325,6 +326,28 @@ when the cache line legitimately dwarfs everything else.
 Model prices live in `~/.agentobs/pricing.json` and are yours to edit. A model
 missing from that file shows cost as `—`, never `$0.00`.
 
+
+### Speed
+
+AgentObs's own work is **0.10ms** for a statusline render and **0.3ms** for a
+hook. What costs time is Node starting up: ~40ms on Linux/macOS, and over a
+second on Windows where antivirus scans the binary on every spawn.
+
+`agentobs daemon` removes that entirely — one warm process holds the database
+open and hot paths become a socket round trip:
+
+```bash
+agentobs daemon --idle 60    # exits after an hour idle
+```
+
+| | Cold start | Via daemon |
+| --- | --- | --- |
+| Statusline render | ~1700ms* | **0.60ms** |
+
+\* measured on Windows with antivirus active; ~40ms on Linux/macOS.
+
+Everything works without it — the daemon is a pure optimisation, and any hot
+path falls back to doing the work in-process when it is not running.
 
 ### Hook latency
 

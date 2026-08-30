@@ -158,6 +158,26 @@ the PreToolUse hook.`,
     });
 
   program
+    .command('daemon')
+    .description('Keep a warm process so the statusline and hooks skip Node startup')
+    .option('--idle <minutes>', 'exit after this long with no requests (0 = never)', '60')
+    .option('--quiet', 'no startup banner', false)
+    .addHelpText(
+      'after',
+      `
+Node takes ~40ms to start on Linux/macOS and can exceed a second on
+Windows with antivirus scanning - while AgentObs's own work for a
+statusline render is 0.10ms. The daemon holds the database open so hot
+paths become a socket round trip instead of a process launch.
+
+Optional: everything works without it, just slower.`,
+    )
+    .action(async (opts) => {
+      const { daemon } = await import('./commands/daemon.js');
+      await daemon(opts);
+    });
+
+  program
     .command('mcp')
     .description('Run as an MCP server so the agent can query its own usage')
     .addHelpText(

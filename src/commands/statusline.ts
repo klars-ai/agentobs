@@ -17,6 +17,7 @@
 import { openDb } from '../core/db.js';
 import { checkBudgets } from '../core/budget.js';
 import { forecastBudget, humanDuration } from '../core/forecast.js';
+import { request as daemonRequest } from '../core/daemon.js';
 
 interface StatuslinePayload {
   model?: { display_name?: string };
@@ -89,27 +90,52 @@ export async function statusline(opts: StatuslineOptions = {}): Promise<void> {
     // needs a limit the user set rather than usage alone.
     if (want.includes('budget')) {
       try {
-        const statuses = checkBudgets(openDb(), { record: false });
-        // Surface the budget closest to its limit; a status bar has room for
-        // one, and the tightest one is the one worth seeing.
-        const tightest = statuses.sort((a, b) => b.ratio - a.ratio)[0];
-        if (tightest) {
-          const pct = Math.round(tightest.ratio * 100);
-          const unit = tightest.unit === 'tokens' ? compact(tightest.spent) : money(tightest.spent);
-          const limit =
-            tightest.unit === 'tokens' ? compact(tightest.limit) : money(tightest.limit);
+        // Ask a warm daemon first. Opening the database here costs ~13ms,
+        // which is trivial next to Node's own startup - but the daemon also
+        // avoids that startup entirely when the caller is the daemon-backed
+        // path, and keeps this process from touching the DB at all.
+        const fromDaemon = (await daemonRequest({ op: 'statusline' }, 120)) as {
+          budget?: {
+            spent: number;
+            limit: number;
+            unit: 'usd' | 'tokens';
+            ratio: number;
+            exceeded: boolean;
+            forecast?: { minutesToLimit: number | null; willExceed: boolean };
+          } | null;
+        } | null;
 
-          if (tightest.exceeded) {
-            segments.push(`OVER ${unit}/${limit}`);
+        const b =
+          fromDaemon?.budget ??
+          (() => {
+            const statuses = checkBudgets(openDb(), { record: false });
+            const tightest = statuses.sort((a, b2) => b2.ratio - a.ratio)[0];
+            if (!tightest) return null;
+            return {
+              spent: tightest.spent,
+              limit: tightest.limit,
+              unit: tightest.unit,
+              ratio: tightest.ratio,
+              exceeded: tightest.exceeded,
+              forecast: forecastBudget(openDb(), tightest),
+            };
+          })();
+
+        if (b) {
+          const pct = Math.round(b.ratio * 100);
+          const spent = b.unit === 'tokens' ? compact(b.spent) : money(b.spent);
+          const limit = b.unit === 'tokens' ? compact(b.limit) : money(b.limit);
+
+          if (b.exceeded) {
+            segments.push(`OVER ${spent}/${limit}`);
           } else {
-            const f = forecastBudget(openDb(), tightest);
             // Only show a countdown when the limit is actually projected to
             // arrive first - otherwise it is noise.
             const eta =
-              f.minutesToLimit !== null && f.willExceed
-                ? ` -> ${humanDuration(f.minutesToLimit)}`
+              b.forecast && b.forecast.minutesToLimit !== null && b.forecast.willExceed
+                ? ` -> ${humanDuration(b.forecast.minutesToLimit)}`
                 : '';
-            segments.push(`${unit}/${limit} ${pct}%${eta}`);
+            segments.push(`${spent}/${limit} ${pct}%${eta}`);
           }
         }
       } catch {
