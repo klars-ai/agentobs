@@ -4,19 +4,19 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
-    <title>AgentObs — see what your AI agents actually do</title>
+    <title>AgentObs — stop your AI agent before it overspends</title>
     <meta
       name="description"
-      content="Observability and guardrails for AI coding agents. See every tool call, token, and dollar your agents spend — and block the risky ones. Local-first, open source, no account required."
+      content="The only Claude Code tool that can say no. Hard-block your agent at a spend limit, a token limit, or a dangerous command. Local-first, open source, no account required."
     />
     <link rel="canonical" href="https://agents.klars.ai/" />
 
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://agents.klars.ai/" />
-    <meta property="og:title" content="AgentObs — see what your AI agents actually do" />
+    <meta property="og:title" content="AgentObs — stop your AI agent before it overspends" />
     <meta
       property="og:description"
-      content="Every tool call, token, and dollar your AI coding agents spend. Plus guardrails that stop the risky ones. Local-first and open source."
+      content="Every other agent tool is read-only. AgentObs sets a limit and enforces it before the call runs - on dollars, on tokens, or on dangerous commands."
     />
     <meta name="twitter:card" content="summary_large_image" />
 
@@ -33,6 +33,7 @@
       </a>
       <nav class="nav-links">
         <a href="#how">How it works</a>
+        <a href="#compare">Compare</a>
         <a href="#guardrails">Guardrails</a>
         <a href="#privacy">Privacy</a>
         <a class="nav-cta" href="https://github.com/klars-ai/agentobs">GitHub</a>
@@ -47,10 +48,11 @@
           narrow screens CSS turns it into a plain space (see .hero h1 br)
           rather than display:none, which would run the two words together.
         -->
-        <h1>See what your AI agents <br class="desktop-break" />actually do.</h1>
+        <h1>Stop your agent before <br class="desktop-break" />it overspends.</h1>
         <p class="lede">
-          Every tool call, token, and dollar your AI coding agents spend — on one dashboard.
-          Then set guardrails that stop the risky ones before they run.
+          Every other Claude Code tool is read-only — they tell you what happened after it
+          happened. AgentObs sets a limit and enforces it <em>before</em> the call runs:
+          on dollars, on tokens, or on dangerous commands.
         </p>
 
         <div class="install">
@@ -86,7 +88,7 @@
       </section>
 
       <section class="strip" aria-label="At a glance">
-        <div><strong>Local-first</strong><span>Nothing leaves your machine</span></div>
+        <div><strong>Hard limits</strong><span>Blocks, not just warns</span></div>
         <div><strong>Zero config</strong><span>No hooks needed to start</span></div>
         <div><strong>MIT licensed</strong><span>Read every line</span></div>
       </section>
@@ -135,6 +137,40 @@ agentobs init</code></pre>
             </div>
           </li>
         </ol>
+      </section>
+
+
+      <section class="section" id="compare">
+        <h2>What makes it different</h2>
+        <p class="section-lede">
+          The Claude Code tooling space is well served for reporting. It is empty for
+          control — every other tool tells you what already happened.
+        </p>
+        <div class="table-wrap">
+          <table class="compare">
+            <thead>
+              <tr>
+                <th scope="col">Capability</th>
+                <th scope="col">Cost trackers</th>
+                <th scope="col">Security hooks</th>
+                <th scope="col">AgentObs</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Cost &amp; token reporting</td><td class="y">Yes</td><td class="n">No</td><td class="y">Yes</td></tr>
+              <tr><td>Web dashboard</td><td class="n">No</td><td>Some</td><td class="y">Yes</td></tr>
+              <tr><td>Blocks dangerous commands</td><td class="n">No</td><td class="y">Yes</td><td class="y">Yes</td></tr>
+              <tr><td><strong>Blocks on a spend limit</strong></td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
+              <tr><td><strong>Blocks on your 5-hour window</strong></td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
+              <tr><td>Secret redaction, unit-tested</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="section-lede" style="margin-top:20px">
+          Only want cost reporting?
+          <a href="https://github.com/ryoppippi/ccusage">ccusage</a> is excellent at it and
+          supports 16+ agents. AgentObs is for when you want to <em>stop</em> things.
+        </p>
       </section>
 
       <section class="section" id="guardrails">

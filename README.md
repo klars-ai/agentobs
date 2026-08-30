@@ -4,7 +4,7 @@
 
 # AgentObs
 
-**See every tool call, token, and dollar your AI agents spend — and stop the risky ones.**
+**Stop your AI agent before it spends too much or breaks something.**
 
 [![npm](https://img.shields.io/npm/v/@klars/agentobs?color=2a78d6&label=npm)](https://www.npmjs.com/package/@klars/agentobs)
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
@@ -23,13 +23,37 @@
 
 <br>
 
-## Guardrails that actually stop things
+## The only agent tool that can say no
+
+Every other Claude Code tool is read-only — they tell you what happened
+*after* it happened. AgentObs is a control plane: it sets limits and enforces
+them before a call runs.
+
+```
+$ agentobs budget set --daily 5 --block
+$ agentobs policy test Bash "rm -rf ./build"
+
+  Decision   BLOCK
+  Rule       no-recursive-force-delete
+```
 
 <img src="docs/assets/demo.gif" alt="Terminal demo: agentobs policy test blocks an rm -rf command, then agentobs stats shows the cost, calls, errors and blocked totals." width="820" />
 
-AgentObs is an observability and control layer for AI coding agents. It runs
-entirely on your machine: a CLI, a local SQLite database, and a dashboard. No
-account, no cloud, no telemetry.
+| | Cost tools | Security hooks | **AgentObs** |
+| --- | --- | --- | --- |
+| Cost & token reporting | ✅ | ❌ | ✅ |
+| Web dashboard | ❌ | some | ✅ |
+| Blocks dangerous commands | ❌ | ✅ | ✅ |
+| **Blocks on a spend limit** | ❌ | ❌ | ✅ |
+| **Blocks on your 5-hour window** | ❌ | ❌ | ✅ |
+| Secret redaction, unit-tested | ❌ | ❌ | ✅ |
+
+**Just want cost reporting?** [ccusage](https://github.com/ryoppippi/ccusage) is
+excellent at it and supports 16+ agents. AgentObs is for when you want to
+*stop* things, not only measure them.
+
+AgentObs runs entirely on your machine: a CLI, a local SQLite database, and a
+dashboard. No account, no cloud, no telemetry.
 
 ## Quick start
 
@@ -68,7 +92,8 @@ guardrails actually block them — add the hook configuration that
 
 |                        |                                                              |
 | ---------------------- | ------------------------------------------------------------ |
-| **Cost tracking**      | Per session, per tool, per day — or blank if the model's price is unknown. Never guessed. |
+| **Budget limits**      | Warn or **hard-block** at a dollar or token limit — daily, weekly, monthly, or Claude's 5-hour window. |
+| **Cost tracking**      | Per session, per tool, per project — or blank if the model's price is unknown. Never guessed. |
 | **Tool-call timeline** | Every call, its duration, status, and truncated input.        |
 | **Guardrails**         | Block `rm -rf`, require approval for `.env` edits, stop `curl \| sh`. |
 | **Audit trail**        | Every policy decision recorded with the rule that fired.      |
@@ -110,7 +135,47 @@ agentobs export --format csv|json    Export sessions, tool calls, or decisions
 agentobs policy init                 Write a starter policy.json
 agentobs policy check                Validate it and list active rules
 agentobs policy test <tool> <input>  Dry-run a call against the policy
+
+agentobs budget                      Spend and token use against your limits
+agentobs budget set --daily 5        Warn past $5 today
+agentobs budget set --monthly 100 --block        Stop at $100 this month
+agentobs budget set --block5h 200000 --tokens    Watch your 5-hour window
+
+agentobs digest                      A readable period summary
+agentobs projects                    Spend grouped by working directory
 ```
+
+---
+
+## Budgets
+
+The feature nothing else has: a limit that actually stops the agent.
+
+```bash
+agentobs budget set --daily 5                    # warn
+agentobs budget set --monthly 100 --block        # stop at $100
+agentobs budget set --block5h 200000 --tokens    # 5-hour window
+```
+
+```
+  Budget       Spent       Limit   Used  Action
+  ------------------------------------------------------------
+  block5h      120K tok    200K tok   60%  warn
+  [############........]
+  daily           $0.66       $5.00   13%  warn
+  [###.................]
+```
+
+With `--block`, a crossed limit denies further tool calls through the same
+PreToolUse hook the guardrails use — the agent is told why, and the decision is
+recorded in the audit trail.
+
+**On a subscription plan, dollars are the wrong unit.** What bites is the
+rolling 5-hour session window and the weekly cap. `--tokens` denominates a
+budget in tokens, and `--block5h` tracks that window, so you can see a lockout
+coming instead of hitting it mid-task.
+
+Alerts fire once per period, not once per tool call.
 
 ---
 

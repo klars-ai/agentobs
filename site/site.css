@@ -650,3 +650,49 @@ img.brand-mark {
   background: none;
   border-radius: 7px;
 }
+
+/* ---------- comparison table ---------- */
+
+.compare {
+  font-size: 14px;
+}
+
+.compare th,
+.compare td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--grid);
+  text-align: left;
+}
+
+.compare thead th {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  font-weight: 650;
+  border-bottom: 1px solid var(--border);
+}
+
+/* The last column is ours, so give it a quiet tint rather than a loud one -
+   a comparison table that shouts loses the credibility it is there to build. */
+.compare th:last-child,
+.compare td:last-child {
+  background: color-mix(in srgb, var(--series-1) 6%, transparent);
+  font-weight: 600;
+}
+
+/* Yes/No carry a glyph as well as colour: the status-palette rule, and it
+   keeps the table readable in grayscale or with CVD. */
+.compare .y {
+  color: var(--series-3);
+  font-weight: 620;
+}
+.compare .y::before {
+  content: '\2713 ';
+}
+.compare .n {
+  color: var(--text-muted);
+}
+.compare .n::before {
+  content: '\2013 ';
+}
