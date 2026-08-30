@@ -7,7 +7,9 @@ import { join } from 'node:path';
 const home = mkdtempSync(join(tmpdir(), 'agentobs-hooks-'));
 process.env.AGENTOBS_HOME = join(home, 'agentobs');
 
-const { installHooks, uninstallHooks } = await import('./install-hooks.js');
+const { installHooks, uninstallHooks, claudeSettingsFile } = await import(
+  './install-hooks.js',
+);
 
 test.after(() => rmSync(home, { recursive: true, force: true }));
 
@@ -108,4 +110,42 @@ test('uninstall removes only our hooks', () => {
   assert.equal(after.theme, 'dark');
   assert.equal(after.hooks.UserPromptSubmit[0].hooks[0].command, '/theirs.sh');
   assert.equal(after.hooks.PreToolUse, undefined, 'ours should be gone');
+});
+
+test('CLAUDE_CONFIG_DIR decides where hooks are installed', () => {
+  // The importer already honours this variable. When hook installation did not,
+  // a user with a relocated Claude Code config had hooks written to a file
+  // Claude Code never reads - and init still reported success, so nothing was
+  // recorded and nothing said why.
+  const relocated = join(home, 'relocated-config');
+  mkdirSync(relocated, { recursive: true });
+
+  const previous = process.env.CLAUDE_CONFIG_DIR;
+  process.env.CLAUDE_CONFIG_DIR = relocated;
+  try {
+    assert.equal(claudeSettingsFile(), join(relocated, 'settings.json'));
+
+    installHooks();
+    const written = JSON.parse(
+      readFileSync(join(relocated, 'settings.json'), 'utf8'),
+    ) as { hooks: Record<string, unknown> };
+    assert.ok(written.hooks.PreToolUse, 'hooks should land in the relocated file');
+  } finally {
+    if (previous === undefined) delete process.env.CLAUDE_CONFIG_DIR;
+    else process.env.CLAUDE_CONFIG_DIR = previous;
+  }
+});
+
+test('an explicit projectDir still wins over CLAUDE_CONFIG_DIR', () => {
+  const previous = process.env.CLAUDE_CONFIG_DIR;
+  process.env.CLAUDE_CONFIG_DIR = join(home, 'relocated-config');
+  try {
+    assert.equal(
+      claudeSettingsFile('/some/project'),
+      join('/some/project', '.claude', 'settings.json'),
+    );
+  } finally {
+    if (previous === undefined) delete process.env.CLAUDE_CONFIG_DIR;
+    else process.env.CLAUDE_CONFIG_DIR = previous;
+  }
 });

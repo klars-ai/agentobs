@@ -32,9 +32,20 @@ const EVENTS: Array<{ event: string; matcher?: string }> = [
   { event: 'SessionEnd' },
 ];
 
+/**
+ * Where Claude Code keeps the settings file we install hooks into.
+ *
+ * CLAUDE_CONFIG_DIR must be honoured here for the same reason the transcript
+ * importer honours it: a user who has relocated their Claude Code config would
+ * otherwise get hooks written to a settings file Claude Code never reads, and
+ * the failure is silent - `init` reports success, and nothing is ever recorded.
+ * The two paths disagreeing is worse than either choice on its own.
+ */
 export function claudeSettingsFile(projectDir?: string): string {
-  return projectDir
-    ? join(projectDir, '.claude', 'settings.json')
+  if (projectDir) return join(projectDir, '.claude', 'settings.json');
+  const configured = process.env.CLAUDE_CONFIG_DIR;
+  return configured
+    ? join(configured, 'settings.json')
     : join(homedir(), '.claude', 'settings.json');
 }
 

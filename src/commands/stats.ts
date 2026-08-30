@@ -20,7 +20,18 @@ function toRange(opts: StatsOptions): Range {
   return v === 'today' || v === '7d' || v === '30d' || v === 'all' ? v : '7d';
 }
 
-const money = (v: number | null): string => (v === null ? '—' : `$${v.toFixed(4)}`);
+/**
+ * Fixed 4dp rendered $3.50 as "$3.5000", which reads as a machine dump rather
+ * than money. Sub-cent precision still matters below a cent - a $0.004 day is
+ * not a $0.00 day - so small values keep the extra digits and larger ones do
+ * not. Same reasoning as budgetAmount, applied to totals rather than limits.
+ */
+const money = (v: number | null): string => {
+  if (v === null) return '—';
+  if (v === 0) return '$0.00';
+  if (Math.abs(v) < 0.01) return `$${v.toFixed(4)}`;
+  return `$${v.toFixed(2)}`;
+};
 
 export async function stats(opts: StatsOptions): Promise<void> {
   const db = openDb();

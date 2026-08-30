@@ -83,6 +83,19 @@ export async function init(opts: InitOptions = {}): Promise<void> {
       for (const s of r.skipped) {
         console.log(`  Skipped ${s.event}: ${s.reason}`);
       }
+      // PreToolUse is not one hook among four - it is the only one that can
+      // refuse a call. Skipping it leaves budgets and policy installed,
+      // configurable, and completely inert. Reporting it as a plain "skipped"
+      // would let someone set a limit and believe they were protected.
+      if (r.skipped.some((s) => s.event === 'PreToolUse')) {
+        console.log(`
+  Without PreToolUse, AgentObs cannot block anything. Budgets and policy
+  rules will still record and warn, but never refuse a call. To enforce:
+
+    agentobs install-hooks --force
+
+  which adds our hook alongside the existing one rather than replacing it.`);
+      }
       if (r.skipped.length > 0) console.log('');
 
       if (r.installed.length > 0) {
