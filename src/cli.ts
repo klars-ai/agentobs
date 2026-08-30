@@ -55,6 +55,15 @@ export function buildProgram(): Command {
     .command('watch')
     .argument('<file>', 'JSONL file to tail')
     .description('Ingest a newline-delimited JSON agent log')
+    .addHelpText(
+      'after',
+      `
+Example:
+  agentobs watch ./agent-log.jsonl --agent my-agent
+
+The file should contain one JSON object per line with a "type" field
+(session_start, tool_call_start, tool_call_end, session_end).`,
+    )
     .option('--agent <name>', 'agent name to record', 'generic')
     .option('--no-follow', 'process existing lines then exit')
     .action(async (file, opts) => {
@@ -65,12 +74,23 @@ export function buildProgram(): Command {
   program
     .command('run')
     .description('Run a command under observation (coarse: duration and exit code)')
-    .argument('<command...>', 'command to run, after --')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  agentobs run -- npm test
+  agentobs run -- claude
+  agentobs run -- git status
+
+Note the "--": everything after it is the command to observe.
+On Windows, cmd.exe builtins (dir, echo, type) need: agentobs run -- cmd /c dir`,
+    )
+    .argument('[command...]', 'command to run, after --')
     .option('--agent <name>', 'agent name to record')
     .allowUnknownOption()
-    .action(async (command: string[], opts) => {
+    .action(async (command: string[] | undefined, opts) => {
       const { run } = await import('./commands/run.js');
-      await run(command, opts);
+      await run(command ?? [], opts);
     });
 
   program

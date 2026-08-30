@@ -100,7 +100,22 @@ export async function runWrapped(command: string[], opts: RunOptions = {}): Prom
     child.on('error', (err) => {
       // Spawn failure (command not found) - record it as a failed session
       // rather than losing the attempt entirely.
-      console.error(`[agentobs] failed to start ${command[0]}: ${err.message}`);
+      // A shell builtin (dir, echo, cd, type) is not a program on disk, so
+      // there is nothing to spawn. Saying only "ENOENT" sends the user
+      // hunting for a broken install; naming the actual cause and the
+      // workaround is the difference between a dead end and a fix.
+      if (process.platform === 'win32' && WINDOWS_BUILTINS.has(command[0].toLowerCase())) {
+        console.error(
+          `[agentobs] "${command[0]}" is a cmd.exe builtin, not a program, so there is ` +
+            `nothing to wrap.\n` +
+            `           Try:  agentobs run -- cmd /c ${command.join(' ')}`,
+        );
+      } else {
+        console.error(
+          `[agentobs] failed to start ${command[0]}: ${err.message}\n` +
+            `           Check the command exists and is on your PATH.`,
+        );
+      }
       finish(127);
     });
 
@@ -124,6 +139,17 @@ export async function runWrapped(command: string[], opts: RunOptions = {}): Prom
     }
   });
 }
+
+/**
+ * cmd.exe builtins - commands that exist only inside the shell, with no
+ * executable on disk. Spawning them always fails with ENOENT, so they get a
+ * message that explains why rather than one that looks like a broken install.
+ */
+const WINDOWS_BUILTINS = new Set([
+  'dir', 'echo', 'cd', 'chdir', 'type', 'copy', 'move', 'del', 'erase', 'md',
+  'mkdir', 'rd', 'rmdir', 'ren', 'rename', 'cls', 'set', 'ver', 'vol', 'path',
+  'pause', 'title', 'prompt', 'assoc', 'ftype', 'exit', 'call', 'start',
+]);
 
 /**
  * Builds a cmd.exe command line, quoting each part that needs it.

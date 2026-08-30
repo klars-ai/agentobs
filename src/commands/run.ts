@@ -9,7 +9,16 @@ export interface RunOptions {
 
 export async function run(command: string[], opts: RunOptions = {}): Promise<void> {
   if (command.length === 0) {
-    console.error('Nothing to run. Usage: agentobs run -- <command> [args...]');
+    console.error(`Nothing to run.
+
+  Usage:  agentobs run -- <command> [args...]
+
+  Examples:
+    agentobs run -- npm test
+    agentobs run -- claude
+    agentobs run -- git status
+
+  The "--" matters: everything after it is the command to observe.`);
     process.exitCode = 2;
     return;
   }
