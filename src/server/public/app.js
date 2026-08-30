@@ -231,6 +231,8 @@ function renderSessions(rows) {
   }
   for (const row of rows) {
     const tr = document.createElement('tr');
+    tr.dataset.sessionId = row.id;
+    tr.title = 'Click to see what this session did';
     const agent = cell('');
     agent.append(document.createTextNode(row.agent_name));
     // Coarse sessions know only duration and exit code. Labelling them keeps
@@ -267,6 +269,8 @@ function renderActivity(rows) {
   }
   for (const row of rows) {
     const tr = document.createElement('tr');
+    tr.dataset.sessionId = row.session_id;
+    tr.title = 'Click to see the whole session';
 
     const status = document.createElement('td');
     status.append(statusPill(row.status));
@@ -673,4 +677,121 @@ function drawAllSparks() {
     const ctx = blockedCanvas.getContext('2d');
     ctx.clearRect(0, 0, blockedCanvas.width, blockedCanvas.height);
   }
+}
+
+/* ---------- session detail drawer ---------- */
+
+const drawer = document.getElementById('session-drawer');
+
+/**
+ * Opens the per-session view: what the agent actually did, in order.
+ *
+ * The totals answer "how much"; this answers "what happened in that weird
+ * 40-minute session" - which is the question people actually open a dashboard
+ * with. All the data is already stored, so this is presentation only.
+ */
+async function openSession(sessionId) {
+  try {
+    const data = await fetchJson(`/api/session?id=${encodeURIComponent(sessionId)}`);
+    const s = data.session;
+    if (!s) return;
+
+    document.getElementById('drawer-title').textContent = s.agent_name;
+    document.getElementById('drawer-sub').textContent =
+      `${s.cwd ?? 'unknown directory'} · started ${relativeTime(s.started_at)}` +
+      (s.fidelity === 'coarse' ? ' · coarse (no per-call detail)' : '');
+
+    const stats = document.getElementById('drawer-stats');
+    stats.replaceChildren();
+    const pairs = [
+      ['Cost', money(s.total_cost_usd)],
+      ['Tool calls', count(s.tool_call_count)],
+      ['Errors', count(s.error_count)],
+      ['Blocked', count(s.blocked_count)],
+      ['Tokens', count(s.total_tokens_in + s.total_tokens_out)],
+      ['Exit', s.exit_code === null ? '—' : String(s.exit_code)],
+    ];
+    for (const [label, value] of pairs) {
+      const wrap = document.createElement('div');
+      const dt = document.createElement('dt');
+      dt.textContent = label;
+      const dd = document.createElement('dd');
+      dd.textContent = value;
+      wrap.append(dt, dd);
+      stats.append(wrap);
+    }
+
+    const body = document.getElementById('drawer-calls');
+    body.replaceChildren();
+    if (data.calls.length === 0) {
+      const tr = document.createElement('tr');
+      tr.append(
+        Object.assign(
+          cell(
+            s.fidelity === 'coarse'
+              ? 'Process-wrapped: duration and exit code only, no per-call detail.'
+              : 'No tool calls recorded for this session.',
+            'empty',
+          ),
+          { colSpan: 5 },
+        ),
+      );
+      body.append(tr);
+    } else {
+      data.calls.forEach((c, i) => {
+        const tr = document.createElement('tr');
+        const status = document.createElement('td');
+        status.append(statusPill(c.status));
+        const input = document.createElement('td');
+        const code = document.createElement('code');
+        code.className = 'mono truncate';
+        code.textContent = c.input_summary || '—';
+        code.title = c.error_message || c.output_summary || '';
+        input.append(code);
+        tr.append(
+          cell(String(i + 1), 'num'),
+          status,
+          cell(c.tool_name),
+          input,
+          cell(ms(c.duration_ms), 'num'),
+        );
+        body.append(tr);
+      });
+    }
+
+    drawer.hidden = false;
+    document.body.style.overflow = 'hidden';
+  } catch (err) {
+    setConnection(false, `Could not load session: ${err.message}`);
+  }
+}
+
+function closeDrawer() {
+  drawer.hidden = true;
+  document.body.style.overflow = '';
+}
+
+for (const el of document.querySelectorAll('[data-close-drawer]')) {
+  el.addEventListener('click', closeDrawer);
+}
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !drawer.hidden) closeDrawer();
+});
+
+// Event delegation: rows are re-rendered every poll, so per-row listeners
+// would have to be re-attached each time (and would leak).
+document.getElementById('sessions-body').addEventListener('click', (e) => {
+  const tr = e.target.closest('tr');
+  if (tr?.dataset.sessionId) openSession(tr.dataset.sessionId);
+});
+document.getElementById('activity-body').addEventListener('click', (e) => {
+  const tr = e.target.closest('tr');
+  if (tr?.dataset.sessionId) openSession(tr.dataset.sessionId);
+});
+
+// Deep link support: ?session=<id> opens that session on load, so a specific
+// session can be linked to directly rather than hunted for in the table.
+const deepLink = new URLSearchParams(window.location.search).get('session');
+if (deepLink) {
+  setTimeout(() => openSession(deepLink), 300);
 }

@@ -100,6 +100,7 @@ On Windows, cmd.exe builtins (dir, echo, type) need: agentobs run -- cmd /c dir`
     .option('--all', 'import every transcript found, however old', false)
     .option('--dry-run', 'list what would be imported, write nothing', false)
     .option('--session <id>', 'import one specific session id')
+    .option('--watch', 'keep importing as sessions run (live, no hooks)', false)
     .addHelpText(
       'after',
       `

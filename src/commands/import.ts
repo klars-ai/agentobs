@@ -9,6 +9,8 @@ import { openDb } from '../core/db.js';
 import { findTranscripts, importTranscript, transcriptRoot } from '../adapters/claude-transcript.js';
 
 export interface ImportOptions {
+  /** Keep watching for new activity instead of exiting after one pass. */
+  watch?: boolean;
   /** Only import transcripts modified within this many days. */
   days?: string | number;
   /** Import every transcript found, however old. */
@@ -94,6 +96,11 @@ install keeps its config somewhere else.`);
   // the whole context is replayed on every turn, so it can reach billions of
   // tokens. That is genuine billing, but a single unexplained total looks
   // like a bug, so show where it comes from.
+  if (opts.watch) {
+    await followTranscripts(db, selected.map((t) => t.path));
+    return;
+  }
+
   console.log(`
   ${selected.length} session(s) · ${calls} tool calls
 
@@ -113,4 +120,62 @@ Run "agentobs stats --today" or "agentobs dashboard" to see it.
 
 Note: imported data is historical, so guardrails cannot block anything
 retroactively. Blocking still requires the PreToolUse hook.`);
+}
+
+/**
+ * Re-imports the newest transcripts on an interval.
+ *
+ * This is the hook-free path to *live* data: Claude Code appends to its
+ * transcript as the session runs, and importTranscript is idempotent (ids come
+ * from the transcript, inserts are ON CONFLICT DO NOTHING), so re-reading a
+ * growing file only adds what is new.
+ *
+ * Polling rather than fs.watch: a transcript is appended to constantly, watch
+ * events would fire far more often than there is work to do, and polling is
+ * also what survives network shares and container mounts.
+ */
+/** Newline, kept as a constant so no escape sequence appears in a template. */
+const EOL = String.fromCharCode(10);
+
+async function followTranscripts(
+  db: ReturnType<typeof openDb>,
+  initialPaths: string[],
+): Promise<void> {
+  const INTERVAL_MS = 5000;
+  console.log(`
+  Watching ${initialPaths.length} transcript(s) — Ctrl-C to stop.
+  New activity appears within ${INTERVAL_MS / 1000}s. No hooks required.
+`);
+
+  let stop = false;
+  for (const sig of ['SIGINT', 'SIGTERM'] as const) {
+    process.on(sig, () => {
+      stop = true;
+      console.log(EOL + '  Stopped.');
+      process.exit(0);
+    });
+  }
+
+  let lastTotal = 0;
+  while (!stop) {
+    // Re-scan every pass: a session started after `watch` began should be
+    // picked up without restarting the command.
+    const current = findTranscripts().filter((t) => Date.now() - t.modifiedAt < 864e5);
+    let calls = 0;
+    for (const t of current) {
+      try {
+        const r = await importTranscript(db, t);
+        calls += r.toolCalls;
+      } catch {
+        // A transcript being written mid-read is normal; the next pass
+        // picks it up.
+      }
+    }
+    if (calls !== lastTotal) {
+      const now = new Date().toLocaleTimeString();
+      process.stdout.write(`  ${now} - ${calls} tool calls across ${current.length} session(s)   `);
+      lastTotal = calls;
+    }
+    await new Promise((r) => setTimeout(r, INTERVAL_MS));
+  }
 }

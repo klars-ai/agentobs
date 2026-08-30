@@ -207,6 +207,35 @@
       <span>Local data only · <code>~/.agentobs/agentobs.db</code></span>
     </footer>
 
+
+    <div class="drawer" id="session-drawer" hidden>
+      <div class="drawer-scrim" data-close-drawer></div>
+      <section class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+        <header class="drawer-head">
+          <div>
+            <h2 id="drawer-title">Session</h2>
+            <p class="panel-sub" id="drawer-sub">&nbsp;</p>
+          </div>
+          <button type="button" class="icon-btn" data-close-drawer aria-label="Close">&times;</button>
+        </header>
+        <dl class="drawer-stats" id="drawer-stats"></dl>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col">Status</th>
+                <th scope="col">Tool</th>
+                <th scope="col">Input</th>
+                <th scope="col" class="num">ms</th>
+              </tr>
+            </thead>
+            <tbody id="drawer-calls"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
     <script type="module" src="/app.js"></script>
   </body>
 </html>
