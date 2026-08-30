@@ -1,24 +1,25 @@
 <div align="center">
 
-<img src="docs/assets/logo.svg" width="72" height="72" alt="" />
+<img src="https://raw.githubusercontent.com/klars-ai/agentobs/main/docs/assets/logo.svg" width="72" height="72" alt="" />
 
 # AgentObs
 
-**Stop your AI agent before it spends too much or breaks something.**
+**Your agent is about to run `rm -rf /`.**
+**Every other tool will tell you about it afterwards.**
 
 [![npm](https://img.shields.io/npm/v/@klars/agentobs?color=2a78d6&label=npm)](https://www.npmjs.com/package/@klars/agentobs)
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%E2%89%A522.5-1baf7a)](https://nodejs.org)
 
-[Website](https://agents.klars.ai) · [npm](https://www.npmjs.com/package/@klars/agentobs) · [Contributing](CONTRIBUTING.md)
+[Website](https://agents.klars.ai) · [npm](https://www.npmjs.com/package/@klars/agentobs) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md) · [Limits](DISCLAIMER.md)
 
 </div>
 
 <br>
 
 <picture>
-  <source srcset="docs/assets/dashboard-dark.png" media="(prefers-color-scheme: dark)" />
-  <img src="docs/assets/dashboard.png" alt="The AgentObs dashboard: spend for the week, tool call and error-rate tiles with trend sparklines, an activity chart, and tables of tools and sessions." />
+  <source srcset="https://raw.githubusercontent.com/klars-ai/agentobs/main/docs/assets/dashboard-dark.png" media="(prefers-color-scheme: dark)" />
+  <img src="https://raw.githubusercontent.com/klars-ai/agentobs/main/docs/assets/dashboard.png" alt="The AgentObs dashboard: spend for the week, tool call and error-rate tiles with trend sparklines, an activity chart, and tables of tools and sessions." />
 </picture>
 
 <br>
@@ -38,7 +39,7 @@ $ agentobs policy test Bash "rm -rf ./build"
   Rule       no-recursive-force-delete
 ```
 
-<img src="docs/assets/demo.gif" alt="Terminal demo: agentobs policy test blocks an rm -rf command, then agentobs stats shows the cost, calls, errors and blocked totals." width="820" />
+<img src="https://raw.githubusercontent.com/klars-ai/agentobs/main/docs/assets/demo.gif" alt="Terminal demo: agentobs policy test blocks an rm -rf command, then agentobs stats shows the cost, calls, errors and blocked totals." width="820" />
 
 | | Cost tools | Security hooks | **AgentObs** |
 | --- | --- | --- | --- |
@@ -510,6 +511,31 @@ file paths from your repositories.
 
 ---
 
+
+## What this does and does not guarantee
+
+AgentObs is a safety net, not a guarantee, and the honest limits are worth
+knowing before you rely on it:
+
+- **Guardrails fail open.** A malformed policy degrades to allow-everything and
+  says so. A tool that wedges your agent when its own config breaks is worse
+  than one that stops guarding — but in that state nothing is blocked.
+- **Budgets are enforced between tool calls.** A call already running is not
+  interrupted, so you can exceed a limit by the cost of one operation.
+- **It cannot stop what it never sees.** Enforcement runs through Claude Code's
+  hooks. An agent run without them gets no enforcement at all.
+- **Costs are estimates**, computed locally from a bundled price table. Not an
+  invoice. An unpriced model shows `—`, never `$0.00`.
+- **An `unverified` source may record nothing.** Run `agentobs agents:verify`
+  to see what actually resolves against your logs.
+
+Two minutes of verification is worth more than any assurance: set a small limit
+and confirm it blocks, then run `agentobs agents:verify`.
+
+Full detail in [DISCLAIMER.md](DISCLAIMER.md). Licensed
+[MIT](LICENSE) — provided as is, without warranty of any kind.
+
+---
 ## Requirements
 
 Node.js **≥ 22.5** — AgentObs uses the built-in `node:sqlite` module, so there
@@ -528,6 +554,12 @@ npm test
 Adding an adapter for another agent: see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
+
+## Security
+
+Found a way past redaction, a guardrail, or an approval scope? Email
+**contact@klars.ai** rather than opening a public issue — see
+[SECURITY.md](SECURITY.md).
 
 ## License
 

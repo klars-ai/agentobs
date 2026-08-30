@@ -1,0 +1,43 @@
+name: Bug report
+description: Something behaves differently from what it says it does
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing: if usage is missing or shows zero, run
+        `agentobs agents:verify` first. A wrong field map records zero rather
+        than erroring, which looks exactly like a quiet week — that command
+        tells the two apart in one step.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: "`agentobs --version`"
+      placeholder: "0.13.0"
+    validations: { required: true }
+  - type: input
+    id: platform
+    attributes:
+      label: OS and Node version
+      placeholder: "Windows 11, Node 22.5.0"
+    validations: { required: true }
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you ran, and what it did.
+    validations: { required: true }
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+    validations: { required: true }
+  - type: textarea
+    id: logs
+    attributes:
+      label: Output
+      description: |
+        Run with `AGENTOBS_DEBUG=1` if you can. **Check it for secrets before
+        pasting** — redaction covers stored data, not your terminal scrollback.
+      render: shell

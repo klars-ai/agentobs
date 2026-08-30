@@ -3,8 +3,12 @@
   "version": "0.13.0",
   "description": "Observability and control layer for AI coding agents - see every tool call, token, and dollar your agents spend, and stop them before they do something risky.",
   "license": "MIT",
-  "author": "Klars AI",
-  "homepage": "https://github.com/klars-ai/agentobs",
+  "author": {
+    "name": "Klars AI",
+    "email": "contact@klars.ai",
+    "url": "https://klars.ai"
+  },
+  "homepage": "https://agents.klars.ai",
   "repository": {
     "type": "git",
     "url": "https://github.com/klars-ai/agentobs.git"
@@ -33,7 +37,9 @@
     "dist/server/public",
     "bin",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "DISCLAIMER.md",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json && npm run copy:assets",
@@ -48,5 +54,9 @@
   "devDependencies": {
     "@types/node": "^22.10.0",
     "typescript": "^5.7.0"
+  },
+  "bugs": {
+    "url": "https://github.com/klars-ai/agentobs/issues",
+    "email": "contact@klars.ai"
   }
 }

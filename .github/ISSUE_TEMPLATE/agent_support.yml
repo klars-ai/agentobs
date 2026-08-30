@@ -1,0 +1,38 @@
+name: Agent support
+description: Ask for an agent to be supported, or contribute a verified definition
+labels: [agent-source]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Most agents need **no code** — just a source definition. If you have the
+        agent installed, you can produce a verified one yourself in a few minutes
+        and it will land far faster than a request.
+
+        See [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md).
+  - type: input
+    id: agent
+    attributes:
+      label: Which agent
+      placeholder: "Amp, Goose, Droid..."
+    validations: { required: true }
+  - type: textarea
+    id: definition
+    attributes:
+      label: Source definition, if you have one
+      description: The JSON you put in `~/.agentobs/sources.json`.
+      render: json
+  - type: textarea
+    id: verify
+    attributes:
+      label: "`agentobs agents:verify` output"
+      description: |
+        This is what makes a definition trustworthy rather than a guess. Paste the
+        output — it shows which paths resolved against your real logs.
+      render: shell
+  - type: checkboxes
+    id: honesty
+    attributes:
+      label: Confirmation
+      options:
+        - label: The verify output above is from my own real log files, not constructed
