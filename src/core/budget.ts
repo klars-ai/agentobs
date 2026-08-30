@@ -13,13 +13,22 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { randomUUID } from 'node:crypto';
 
-export type BudgetPeriod = 'daily' | 'weekly' | 'monthly';
+/**
+ * 'block5h' tracks Claude's rolling five-hour session window, and 'weekly'
+ * its weekly cap. Most Claude Code users are on a subscription, so the real
+ * constraint is not dollars - it is being locked out mid-task. Those users
+ * want to know "how much of my window is left", which a USD budget cannot
+ * express.
+ */
+export type BudgetPeriod = 'daily' | 'weekly' | 'monthly' | 'block5h';
 export type BudgetAction = 'warn' | 'block';
 
 export interface Budget {
   id: string;
   period: BudgetPeriod;
-  limit_usd: number;
+  /** Null when the budget is denominated in tokens instead. */
+  limit_usd: number | null;
+  limit_tokens: number | null;
   action: BudgetAction;
   /** Null applies the budget everywhere; otherwise a cwd prefix. */
   scope: string | null;
@@ -29,8 +38,11 @@ export interface Budget {
 
 export interface BudgetStatus {
   budget: Budget;
+  /** Spend in the budget's own unit - USD or tokens. */
   spent: number;
   limit: number;
+  /** Which unit `spent` and `limit` are in, so the UI formats correctly. */
+  unit: 'usd' | 'tokens';
   /** 0-1+; can exceed 1 when over budget. */
   ratio: number;
   periodKey: string;
@@ -56,6 +68,17 @@ export function periodBounds(
   if (period === 'daily') {
     d.setHours(0, 0, 0, 0);
     return { start: d.toISOString(), key: `D${localDate(d)}` };
+  }
+
+  if (period === 'block5h') {
+    // Anthropic's session window is a rolling 5 hours anchored to first use,
+    // but the anchor is not exposed anywhere we can read. Fixed 5-hour blocks
+    // from midnight are a deliberate approximation: it tracks the right
+    // quantity at the right cadence without pretending to know the true
+    // anchor. The key changes every block, so alerts re-arm correctly.
+    const blockIndex = Math.floor(d.getHours() / 5);
+    d.setHours(blockIndex * 5, 0, 0, 0);
+    return { start: d.toISOString(), key: `B${localDate(d)}-${blockIndex}` };
   }
 
   if (period === 'weekly') {
@@ -91,7 +114,13 @@ export function listBudgets(db: DatabaseSync): Budget[] {
 
 export function setBudget(
   db: DatabaseSync,
-  input: { period: BudgetPeriod; limitUsd: number; action?: BudgetAction; scope?: string | null },
+  input: {
+    period: BudgetPeriod;
+    limitUsd?: number;
+    limitTokens?: number;
+    action?: BudgetAction;
+    scope?: string | null;
+  },
 ): Budget {
   const now = new Date().toISOString();
   // One budget per (period, scope): setting a daily limit twice updates it
@@ -104,17 +133,23 @@ export function setBudget(
 
   const id = existing?.id ?? randomUUID();
   if (existing) {
-    db.prepare('UPDATE budgets SET limit_usd = ?, action = ?, updated_at = ? WHERE id = ?').run(
-      input.limitUsd,
-      input.action ?? 'warn',
-      now,
-      id,
-    );
+    db.prepare(
+      'UPDATE budgets SET limit_usd = ?, limit_tokens = ?, action = ?, updated_at = ? WHERE id = ?',
+    ).run(input.limitUsd ?? null, input.limitTokens ?? null, input.action ?? 'warn', now, id);
   } else {
     db.prepare(
-      `INSERT INTO budgets (id, period, limit_usd, action, scope, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    ).run(id, input.period, input.limitUsd, input.action ?? 'warn', input.scope ?? null, now, now);
+      `INSERT INTO budgets (id, period, limit_usd, limit_tokens, action, scope, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run(
+      id,
+      input.period,
+      input.limitUsd ?? null,
+      input.limitTokens ?? null,
+      input.action ?? 'warn',
+      input.scope ?? null,
+      now,
+      now,
+    );
   }
   return db.prepare('SELECT * FROM budgets WHERE id = ?').get(id) as unknown as Budget;
 }
@@ -154,6 +189,32 @@ export function spendSince(db: DatabaseSync, since: string, scope?: string | nul
   return Math.max(Number(callSum.c ?? 0), Number(sessionSum.c ?? 0));
 }
 
+/** Tokens consumed since `since`, optionally scoped to a cwd prefix. */
+export function tokensSince(db: DatabaseSync, since: string, scope?: string | null): number {
+  const callSum = db
+    .prepare(
+      `SELECT COALESCE(SUM(COALESCE(tc.tokens_in,0) + COALESCE(tc.tokens_out,0)), 0) AS t
+         FROM tool_calls tc
+         JOIN sessions s ON s.id = tc.session_id
+        WHERE tc.started_at >= ?
+          AND (? IS NULL OR s.cwd LIKE ? || '%')`,
+    )
+    .get(since, scope ?? null, scope ?? '') as { t: number };
+
+  const sessionSum = db
+    .prepare(
+      `SELECT COALESCE(SUM(total_tokens_in + total_tokens_out), 0) AS t
+         FROM sessions
+        WHERE started_at >= ?
+          AND (? IS NULL OR cwd LIKE ? || '%')`,
+    )
+    .get(since, scope ?? null, scope ?? '') as { t: number };
+
+  // Same reasoning as spendSince: prefer whichever source has data rather
+  // than adding them, which would double-count a session that has both.
+  return Math.max(Number(callSum.t ?? 0), Number(sessionSum.t ?? 0));
+}
+
 /**
  * Evaluates every budget against current spend.
  *
@@ -166,8 +227,16 @@ export function checkBudgets(db: DatabaseSync, opts: { record?: boolean } = {}):
 
   for (const budget of listBudgets(db)) {
     const { start, key } = periodBounds(budget.period);
-    const spent = spendSince(db, start, budget.scope);
-    const exceeded = spent >= budget.limit_usd;
+
+    // A budget is denominated in either dollars or tokens; tokens exist
+    // because subscription users are capped on usage, not spend.
+    const isTokenBudget = budget.limit_tokens !== null && budget.limit_tokens !== undefined;
+    const limit = isTokenBudget ? Number(budget.limit_tokens) : Number(budget.limit_usd ?? 0);
+    const spent = isTokenBudget
+      ? tokensSince(db, start, budget.scope)
+      : spendSince(db, start, budget.scope);
+
+    const exceeded = limit > 0 && spent >= limit;
 
     let newlyExceeded = false;
     if (exceeded && opts.record !== false) {
@@ -175,15 +244,7 @@ export function checkBudgets(db: DatabaseSync, opts: { record?: boolean } = {}):
         db.prepare(
           `INSERT INTO budget_events (id, budget_id, period_key, spent_usd, limit_usd, action, created_at)
            VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        ).run(
-          randomUUID(),
-          budget.id,
-          key,
-          spent,
-          budget.limit_usd,
-          budget.action,
-          new Date().toISOString(),
-        );
+        ).run(randomUUID(), budget.id, key, spent, limit, budget.action, new Date().toISOString());
         newlyExceeded = true;
       } catch {
         // UNIQUE(budget_id, period_key) violation: already alerted this
@@ -194,8 +255,9 @@ export function checkBudgets(db: DatabaseSync, opts: { record?: boolean } = {}):
     out.push({
       budget,
       spent,
-      limit: budget.limit_usd,
-      ratio: budget.limit_usd === 0 ? 0 : spent / budget.limit_usd,
+      limit,
+      unit: isTokenBudget ? 'tokens' : 'usd',
+      ratio: limit === 0 ? 0 : spent / limit,
       periodKey: key,
       periodStart: start,
       exceeded,

@@ -11,7 +11,17 @@ import {
   type BudgetPeriod,
 } from '../core/budget.js';
 
-const money = (v: number): string => `$${v.toFixed(2)}`;
+const money = (v: number | null): string => (v === null ? '—' : `$${v.toFixed(2)}`);
+
+/** Formats a value in whichever unit its budget uses. */
+function amount(value: number, unit: 'usd' | 'tokens'): string {
+  if (unit === 'tokens') {
+    if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M tok`;
+    if (value >= 1_000) return `${Math.round(value / 1_000)}K tok`;
+    return `${value} tok`;
+  }
+  return `$${value.toFixed(2)}`;
+}
 
 /** A 20-cell bar. Text, so it works in any terminal without colour support. */
 function bar(ratio: number, width = 20): string {
@@ -23,6 +33,10 @@ export interface BudgetSetOptions {
   daily?: string;
   weekly?: string;
   monthly?: string;
+  /** Claude's rolling 5-hour session window. */
+  block5h?: string;
+  /** Treat the limits as token counts rather than USD. */
+  tokens?: boolean;
   block?: boolean;
   scope?: string;
 }
@@ -32,6 +46,7 @@ export async function budgetSet(opts: BudgetSetOptions): Promise<void> {
     ['daily', opts.daily],
     ['weekly', opts.weekly],
     ['monthly', opts.monthly],
+    ['block5h', opts.block5h],
   ];
   const chosen = periods.filter(([, v]) => v !== undefined);
 
@@ -40,7 +55,12 @@ export async function budgetSet(opts: BudgetSetOptions): Promise<void> {
 
   Usage:  agentobs budget set --daily 5
           agentobs budget set --monthly 100 --block
+          agentobs budget set --block5h 200000 --tokens
           agentobs budget set --daily 2 --scope /path/to/project
+
+  --tokens makes the limit a token count instead of dollars, which is
+  what matters on a subscription plan: the constraint there is being
+  locked out of your 5-hour window, not the bill.
 
   --block refuses further tool calls once the limit is crossed; without
   it the limit only warns. Blocking needs the PreToolUse hook, since
@@ -59,9 +79,15 @@ export async function budgetSet(opts: BudgetSetOptions): Promise<void> {
       process.exitCode = 2;
       return;
     }
-    const b = setBudget(db, { period, limitUsd: limit, action, scope: opts.scope ?? null });
+    const b = setBudget(db, {
+      period,
+      limitUsd: opts.tokens ? undefined : limit,
+      limitTokens: opts.tokens ? limit : undefined,
+      action,
+      scope: opts.scope ?? null,
+    });
     console.log(
-      `  ${period.padEnd(8)} ${money(b.limit_usd).padStart(9)}  ${b.action}` +
+      `  ${period.padEnd(9)} ${amount(limit, opts.tokens ? 'tokens' : 'usd').padStart(11)}  ${b.action}` +
         (b.scope ? `  scope: ${b.scope}` : ''),
     );
   }
@@ -76,8 +102,9 @@ export async function budgetStatus(): Promise<void> {
   if (budgets.length === 0) {
     console.log(`No budgets set.
 
-  agentobs budget set --daily 5        warn when today passes $5
-  agentobs budget set --monthly 100 --block   stop at $100 this month
+  agentobs budget set --daily 5                 warn past $5 today
+  agentobs budget set --monthly 100 --block     stop at $100 this month
+  agentobs budget set --block5h 200000 --tokens  watch your 5-hour window
 
 Budgets are the spend equivalent of the policy guardrails: instead of
 finding out after the fact, you get told - or stopped - at the limit.`);
@@ -93,8 +120,8 @@ finding out after the fact, you get told - or stopped - at the limit.`);
     const pct = `${Math.round(s.ratio * 100)}%`.padStart(5);
     const flag = s.exceeded ? (s.budget.action === 'block' ? ' OVER (blocking)' : ' OVER') : '';
     console.log(
-      `  ${s.budget.period.padEnd(9)} ${money(s.spent).padStart(9)} ${money(s.limit).padStart(10)} ` +
-        `${pct}  ${s.budget.action}${flag}`,
+      `  ${s.budget.period.padEnd(9)} ${amount(s.spent, s.unit).padStart(11)} ` +
+        `${amount(s.limit, s.unit).padStart(11)} ${pct}  ${s.budget.action}${flag}`,
     );
     console.log(`  ${bar(s.ratio)}${s.budget.scope ? `  ${s.budget.scope}` : ''}`);
   }
@@ -112,5 +139,9 @@ export async function budgetRemove(id: string): Promise<void> {
     return;
   }
   removeBudget(db, match.id);
-  console.log(`Removed the ${match.period} budget (${money(match.limit_usd)}).`);
+  const shown =
+    match.limit_tokens !== null && match.limit_tokens !== undefined
+      ? amount(Number(match.limit_tokens), 'tokens')
+      : money(match.limit_usd);
+  console.log(`Removed the ${match.period} budget (${shown}).`);
 }

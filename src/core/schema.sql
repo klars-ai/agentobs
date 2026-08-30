@@ -82,7 +82,10 @@ CREATE INDEX IF NOT EXISTS idx_policy_decided       ON policy_decisions(decided_
 CREATE TABLE IF NOT EXISTS budgets (
   id           TEXT PRIMARY KEY,
   period       TEXT NOT NULL,           -- daily | weekly | monthly
-  limit_usd    REAL NOT NULL,
+  limit_usd    REAL,                    -- null when the limit is token-based
+  -- Subscription users are capped on tokens, not dollars, so a budget can be
+  -- denominated either way. Exactly one of limit_usd / limit_tokens is set.
+  limit_tokens INTEGER,
   -- "warn" notifies and lets the call through; "block" refuses further tool
   -- calls once the limit is crossed. Blocking spend is the same idea as
   -- blocking a dangerous command, applied to money.
@@ -99,7 +102,10 @@ CREATE TABLE IF NOT EXISTS budget_events (
   budget_id    TEXT NOT NULL REFERENCES budgets(id),
   period_key   TEXT NOT NULL,           -- e.g. 2026-08-30 for a daily budget
   spent_usd    REAL NOT NULL,
-  limit_usd    REAL NOT NULL,
+  limit_usd    REAL,                    -- null when the limit is token-based
+  -- Subscription users are capped on tokens, not dollars, so a budget can be
+  -- denominated either way. Exactly one of limit_usd / limit_tokens is set.
+  limit_tokens INTEGER,
   action       TEXT NOT NULL,
   created_at   TEXT NOT NULL
 );

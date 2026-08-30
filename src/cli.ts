@@ -167,6 +167,8 @@ the PreToolUse hook.`,
     .option('--daily <usd>', 'daily limit in USD')
     .option('--weekly <usd>', 'weekly limit in USD')
     .option('--monthly <usd>', 'monthly limit in USD')
+    .option('--block5h <amount>', "limit for Claude's rolling 5-hour window")
+    .option('--tokens', 'treat the limits as token counts, not dollars', false)
     .option('--block', 'refuse tool calls past the limit (default: warn only)', false)
     .option('--scope <path>', 'apply only to sessions under this directory')
     .action(async (opts) => {
