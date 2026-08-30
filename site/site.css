@@ -696,3 +696,78 @@ img.brand-mark {
 .compare .n::before {
   content: '\2013 ';
 }
+
+/* FAQ
+   Native <details> rather than JS: it is keyboard accessible, findable with
+   the browser's own in-page search when open, and degrades to plain visible
+   text with styles off - which matters because a crawler reading this page
+   should see the answers, not an empty shell. */
+.faq {
+  display: grid;
+  gap: 0;
+  margin-top: 32px;
+  border-top: 1px solid var(--border);
+}
+
+.faq details {
+  border-bottom: 1px solid var(--border);
+}
+
+.faq summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 20px 44px 20px 0;
+  position: relative;
+  font-size: 1.02rem;
+  font-weight: 560;
+  letter-spacing: -0.011em;
+  color: var(--text-primary);
+  transition: color 0.15s ease;
+}
+
+.faq summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq summary:hover {
+  color: var(--accent, var(--text-primary));
+}
+
+.faq summary:focus-visible {
+  outline: 2px solid var(--accent, #2a78d6);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
+/* A rotating chevron drawn in CSS - no icon font, no extra request. */
+.faq summary::after {
+  content: '';
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-right: 1.8px solid var(--text-muted);
+  border-bottom: 1.8px solid var(--text-muted);
+  transform: translateY(-70%) rotate(45deg);
+  transition: transform 0.2s ease;
+}
+
+.faq details[open] summary::after {
+  transform: translateY(-30%) rotate(-135deg);
+}
+
+.faq details p {
+  margin: 0;
+  padding: 0 clamp(0px, 6vw, 72px) 24px 0;
+  color: var(--text-secondary);
+  line-height: 1.62;
+  max-width: 68ch;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .faq summary,
+  .faq summary::after {
+    transition: none;
+  }
+}

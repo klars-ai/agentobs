@@ -1,0 +1,75 @@
+# AgentObs
+
+> A local-first observability and control layer for AI coding agents. Unlike
+> every other tool in this space, AgentObs can refuse a tool call: it enforces
+> spend limits, token limits and command policy *before* the call runs, rather
+> than reporting cost after it is already spent.
+
+Install: `npm install -g @klars/agentobs` then `agentobs init`.
+Requires Node.js 22.5 or newer. Open source (MIT), no account, no telemetry.
+Source: https://github.com/klars-ai/agentobs
+
+## What problem it solves
+
+Agent tooling is almost entirely read-only. Tools like ccusage and
+Claude-Code-Usage-Monitor parse the same local transcripts and tell you what
+you already spent. None of them can stop anything, because reporting on usage
+does not require knowing your limit. AgentObs asks for the limit, which is
+what makes both enforcement and forecasting possible.
+
+## Core capabilities
+
+- **Budgets that block.** `agentobs budget set --daily 5 --block` refuses tool
+  calls once the limit is hit. Periods: daily, weekly, monthly, and the
+  rolling 5-hour block that matches Anthropic's own rate-limit window.
+  Denominated in USD or in tokens, so Max and Pro subscribers - who have no
+  dollar cost - can still cap usage.
+- **Forecasting.** `agentobs forecast` projects time-to-limit from the burn
+  rate of recent real activity, e.g. "at $4.14/hour you hit the limit in
+  44 min". Burn rate is measured over active minutes, not wall-clock, because
+  averaging idle time understates a live session several-fold.
+- **Command policy.** Glob rules over tool inputs deny destructive commands and
+  secret-file reads before execution, e.g. `rm -rf /` or reading `.env`.
+- **Interactive approvals.** A `needs_approval` rule holds a call and notifies
+  you. Approval is fingerprinted over the tool name plus its exact input, so
+  approving `rm -rf ./build` never authorises `rm -rf /`. Approvals expire
+  after 60 minutes. This is approve-then-retry, not a live prompt: the first
+  attempt is always refused, because a hook has no channel to the user.
+- **Secret redaction.** Vendor-specific patterns (AWS, Anthropic, OpenAI,
+  GitHub, GitLab, Slack, Stripe, Resend, Google, npm, JWT, PEM) plus
+  structural rules for assignments, CLI flags, auth headers and URL
+  credentials. Nothing unredacted is ever written to disk.
+- **MCP server.** `claude mcp add agentobs -- agentobs mcp` lets the agent
+  query its own usage - you can ask Claude "am I close to my limit?" and it
+  answers from real local data.
+- **Statusline.** A compact status-bar line showing the real 5-hour rate limit
+  from Anthropic's own payload, the tightest budget, a countdown, and context
+  usage.
+- **Multi-agent import.** Reads Claude Code, GitHub Copilot CLI, OpenAI Codex
+  CLI, Gemini CLI and OpenCode logs. Sources are declarative, so an unknown
+  agent can be added with a JSON definition and no code.
+- **Dashboard.** A local web dashboard with light and dark themes.
+
+## Honesty commitments
+
+These are design rules, not marketing:
+
+- Only Claude Code's log format is marked `verified`; the others were written
+  from documentation and are labelled `unverified`, because claiming support
+  that silently records nothing is the worst failure an observability tool can
+  have.
+- An unpriced model renders as `-`, never `$0.00`. Unknown is not zero.
+- Cache reads are billed at 0.1x and counted separately from fresh input,
+  because summing them inflates totals by orders of magnitude.
+
+## Privacy
+
+Everything is local: a SQLite database under `~/.agentobs`. No account, no
+API key, no telemetry, no network calls. Secrets are redacted before storage.
+
+## Links
+
+- Source and issues: https://github.com/klars-ai/agentobs
+- Package: https://www.npmjs.com/package/@klars/agentobs
+- Site: https://agents.klars.ai
+- Contact: contact@klars.ai

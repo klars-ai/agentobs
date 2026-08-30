@@ -10,18 +10,140 @@
       content="The only Claude Code tool that can say no. Hard-block your agent at a spend limit, a token limit, or a dangerous command. Local-first, open source, no account required."
     />
     <link rel="canonical" href="https://agents.klars.ai/" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+    <meta name="theme-color" content="#f9f9f7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)" />
 
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://agents.klars.ai/" />
+    <meta property="og:site_name" content="AgentObs" />
+    <meta property="og:locale" content="en_US" />
     <meta property="og:title" content="AgentObs — stop your AI agent before it overspends" />
     <meta
       property="og:description"
       content="Every other agent tool is read-only. AgentObs sets a limit and enforces it before the call runs - on dollars, on tokens, or on dangerous commands."
     />
+    <meta property="og:image" content="https://agents.klars.ai/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="AgentObs terminal showing a tool call blocked by a daily budget after $5.02 of a $5.00 limit."
+    />
+
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="AgentObs — stop your AI agent before it overspends" />
+    <meta
+      name="twitter:description"
+      content="Every other agent tool is read-only. AgentObs sets a limit and enforces it before the call runs - on dollars, on tokens, or on dangerous commands."
+    />
+    <meta name="twitter:image" content="https://agents.klars.ai/og.png" />
 
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <link rel="stylesheet" href="/site.css" />
+
+    <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "AgentObs",
+  "applicationCategory": "DeveloperApplication",
+  "applicationSubCategory": "AI agent observability and cost control",
+  "operatingSystem": "macOS, Linux, Windows",
+  "url": "https://agents.klars.ai/",
+  "downloadUrl": "https://www.npmjs.com/package/@klars/agentobs",
+  "installUrl": "https://www.npmjs.com/package/@klars/agentobs",
+  "codeRepository": "https://github.com/klars-ai/agentobs",
+  "license": "https://opensource.org/licenses/MIT",
+  "isAccessibleForFree": true,
+  "description": "A local-first observability and control layer for AI coding agents. Enforces spend limits, token limits and command policy before a tool call runs, rather than reporting cost after it is spent.",
+  "softwareRequirements": "Node.js 22.5 or newer",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "author": {
+    "@type": "Organization",
+    "name": "Klars AI",
+    "url": "https://klars.ai",
+    "email": "contact@klars.ai"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Klars AI",
+    "url": "https://klars.ai"
+  },
+  "featureList": [
+    "Hard-block tool calls at a dollar or token budget",
+    "Rolling 5-hour block budgets matching Anthropic rate-limit windows",
+    "Forecast time-to-limit from recent burn rate",
+    "Deny destructive commands and secret-file reads before execution",
+    "Interactive approvals fingerprinted to the exact tool input",
+    "Secret redaction before anything is written to disk",
+    "MCP server so the agent can query its own usage",
+    "Status-bar line with real rate limits and budget countdown",
+    "Import usage from Claude Code, Copilot CLI, Codex, Gemini CLI and OpenCode",
+    "Local web dashboard"
+  ]
+}
+    </script>
+    <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How do I set a spending limit on Claude Code?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Install AgentObs with npm install -g @klars/agentobs, run agentobs init, then agentobs budget set --daily 5 --block. Once the limit is reached AgentObs refuses further tool calls instead of only reporting the overspend. Budgets can be daily, weekly, monthly, or a rolling 5-hour block matching Anthropic's rate-limit window."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How is AgentObs different from ccusage?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "ccusage and similar tools are read-only: they parse local transcripts and report what you already spent. AgentObs asks for your limit, which lets it do two things a reporting tool cannot: block a tool call before it runs, and forecast how long until you hit the limit. Both require knowing the limit, not just the usage."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I cap usage on a Claude Max or Pro subscription with no dollar cost?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Budgets can be denominated in tokens rather than dollars, for example agentobs budget set --block5h 200000 --tokens. This matters for subscription plans, where usage is limited by rate limits rather than by billed cost."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does AgentObs send my data anywhere?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. Everything is stored in a local SQLite database under ~/.agentobs. There is no account, no API key, no telemetry and no network calls. Secrets are redacted with vendor-specific and structural patterns before anything is written to disk."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Which AI coding agents does AgentObs support?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Claude Code is fully verified. GitHub Copilot CLI, OpenAI Codex CLI, Gemini CLI and OpenCode are supported through declarative log-source definitions that are marked unverified until confirmed against real files. You can add an agent AgentObs has never heard of with a JSON definition and no code."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can AgentObs block dangerous commands?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Glob policy rules match tool inputs and deny a call before it executes, covering destructive commands such as rm -rf / and reads of secret files such as .env. A needs_approval rule instead holds the call for your approval, scoped by a fingerprint of the tool name and its exact input, so approving rm -rf ./build never authorises rm -rf /."
+      }
+    }
+  ]
+}
+    </script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -37,6 +159,7 @@
         <a href="#compare">Compare</a>
         <a href="#guardrails">Guardrails</a>
         <a href="#privacy">Privacy</a>
+        <a href="#faq">FAQ</a>
         <a class="nav-cta" href="https://github.com/klars-ai/agentobs">GitHub</a>
       </nav>
     </header>
@@ -306,6 +429,79 @@ agentobs budget set --block5h 200000 --tokens</code></pre>
             Documentation
           </a>
         </p>
+      </section>
+
+      <!--
+        These answers mirror the FAQPage JSON-LD in the head. Structured data
+        that describes content not actually on the page is a Google violation
+        and, more to the point, a lie - so the visible copy is the source and
+        the schema follows it.
+      -->
+      <section class="section" id="faq">
+        <h2>Questions people actually ask</h2>
+
+        <div class="faq">
+          <details>
+            <summary>How do I set a spending limit on Claude Code?</summary>
+            <p>
+              <code>agentobs budget set --daily 5 --block</code>. Once the limit is reached,
+              AgentObs refuses further tool calls rather than reporting the overspend after the
+              fact. Periods are daily, weekly, monthly, or the rolling 5-hour block that matches
+              Anthropic&rsquo;s own rate-limit window.
+            </p>
+          </details>
+
+          <details>
+            <summary>How is this different from ccusage?</summary>
+            <p>
+              ccusage is read-only, and good at it — it parses the same local transcripts and
+              reports what you already spent. AgentObs asks for your limit, which is what makes
+              two further things possible: refusing a call before it runs, and forecasting how
+              long until you hit the limit. Both need the limit, not just the usage.
+            </p>
+          </details>
+
+          <details>
+            <summary>I&rsquo;m on Max — my cost is $0. Can I still cap anything?</summary>
+            <p>
+              Yes, and this is the case dollar-denominated tools cannot serve. Budgets can be
+              set in tokens:
+              <code>agentobs budget set --block5h 200000 --tokens</code>. On a subscription your
+              real constraint is the rate-limit window, not a bill.
+            </p>
+          </details>
+
+          <details>
+            <summary>Does any of my data leave the machine?</summary>
+            <p>
+              No. One SQLite database under <code>~/.agentobs</code>. No account, no API key, no
+              telemetry, no network calls. Secrets are redacted before anything is written, and
+              those rules are unit-tested.
+            </p>
+          </details>
+
+          <details>
+            <summary>Which agents does it read?</summary>
+            <p>
+              Claude Code is verified against real transcripts. Copilot CLI, Codex CLI, Gemini
+              CLI and OpenCode ship as declarative log-source definitions marked
+              <em>unverified</em> until someone confirms them against real files — claiming
+              support that silently records nothing is the worst thing an observability tool can
+              do. You can add an agent we have never heard of with a JSON definition and no code.
+            </p>
+          </details>
+
+          <details>
+            <summary>Can it stop dangerous commands, not just spending?</summary>
+            <p>
+              Yes. Glob rules match tool inputs and deny before execution — <code>rm -rf /</code>,
+              reads of <code>.env</code>, whatever you add. A <code>needs_approval</code> rule
+              holds the call for you instead, scoped to a fingerprint of the tool name and its
+              exact input, so approving <code>rm -rf ./build</code> never authorises
+              <code>rm -rf /</code>.
+            </p>
+          </details>
+        </div>
       </section>
     </main>
 
