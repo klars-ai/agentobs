@@ -20,8 +20,12 @@ export function buildProgram(): Command {
 
   program
     .command('init')
-    .description('Create ~/.agentobs, the database, and print the Claude Code hook config')
-    .option('--force', 'overwrite an existing pricing.json / policy.json', false)
+    .description('Set up everything: database, hooks, starter policy, and import your history')
+    .option('--force', 'overwrite existing config, and add hooks alongside foreign ones', false)
+    .option('--print-hooks', 'print the hook config instead of installing it', false)
+    .option('--no-hooks', 'do not touch ~/.claude/settings.json')
+    .option('--no-import', 'do not import existing Claude Code history')
+    .option('--project <dir>', "install into a project's .claude/ instead of your home")
     .action(async (opts) => {
       const { init } = await import('./commands/init.js');
       await init(opts);
@@ -209,6 +213,24 @@ usage, which is why a read-only usage tool cannot tell you this.
     .action(async (opts) => {
       const { forecast } = await import('./commands/forecast.js');
       await forecast(opts);
+    });
+
+  program
+    .command('uninstall-hooks')
+    .description("Remove AgentObs's hooks from your Claude Code settings")
+    .option('--project <dir>', "remove from a project's .claude/ instead of your home")
+    .action(async (opts) => {
+      const { uninstallHooks } = await import('./commands/install-hooks.js');
+      const r = uninstallHooks({ projectDir: opts.project });
+      if (r.installed.length === 0) {
+        console.log('No AgentObs hooks were configured.');
+        return;
+      }
+      console.log(`Removed AgentObs hooks from ${r.settingsPath}`);
+      console.log(`  events : ${r.installed.join(', ')}`);
+      if (r.backupPath) console.log(`  backup : ${r.backupPath}`);
+      console.log('');
+      console.log('Restart Claude Code for the change to take effect.');
     });
 
   const budget = program

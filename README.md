@@ -64,31 +64,41 @@ dashboard. No account, no cloud, no telemetry.
 ```bash
 npm install -g @klars/agentobs
 agentobs init
-agentobs import
 ```
 
-`import` reads Claude Code's own session transcripts from `~/.claude/projects/`
-and backfills everything you have already done — no configuration, no hooks.
-Then:
+That is the whole setup. `init` creates the database, **writes the Claude Code
+hooks for you** (backing up your settings first), adds starter guardrails, and
+imports your existing history so the dashboard has data immediately.
 
 ```bash
 agentobs dashboard
 ```
 
-That is the fastest path to real data, and the one to try first.
+Restart Claude Code once for live capture to begin.
 
-### Live capture (optional)
+<details>
+<summary>What init touches, and how to opt out</summary>
 
-`import` is after-the-fact. To record calls **as they happen** — and to let
-guardrails actually block them — add the hook configuration that
-`agentobs init` prints to `~/.claude/settings.json`, then restart Claude Code.
+- `~/.agentobs/` — database, `pricing.json`, `policy.json`
+- `~/.claude/settings.json` — four hook entries, **backed up first**. Anything
+  else in that file is left exactly as it was, and a hook another tool already
+  owns is never replaced (use `--force` to add alongside it).
+
+```bash
+agentobs init --no-hooks       # leave settings.json alone
+agentobs init --print-hooks    # print the config instead of installing it
+agentobs init --no-import      # skip importing history
+agentobs init --project .      # install into this repo's .claude/ instead
+agentobs uninstall-hooks       # remove only AgentObs's hooks
+```
+
+</details>
 
 > **If hooks record nothing:** this has been observed on at least one Windows
 > install, where Claude Code did not invoke the configured command at all — a
 > plain two-line `.cmd` file also never fired, so it is not specific to
-> AgentObs. Check by running any tool and then `agentobs stats --today`. If it
-> stays at zero, keep using `agentobs import`, which needs no hooks; only
-> guardrail *blocking* depends on them.
+> AgentObs. `agentobs import` needs no hooks and keeps working; only guardrail
+> *blocking* depends on them.
 
 ---
 
@@ -128,7 +138,8 @@ Everything lives in `~/.agentobs/`. Uninstalling is `rm -rf ~/.agentobs`.
 ## Commands
 
 ```
-agentobs init                        Set up ~/.agentobs and print the hook config
+agentobs init                        Set up everything: db, hooks, policy, history
+agentobs uninstall-hooks             Remove AgentObs's hooks from your settings
 agentobs import [--days n] [--all]   Import Claude Code transcripts (no hooks needed)
 agentobs dashboard [--port] [--host] Serve the dashboard (default 127.0.0.1:4300)
 agentobs stats [--today] [--since]   Print totals in the terminal
