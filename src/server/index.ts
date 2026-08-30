@@ -27,6 +27,7 @@ import {
   getSessionDetail,
   getSessions,
   getSparklines,
+  getDaily,
   getSummary,
   getTimeline,
   getToolsBreakdown,
@@ -136,6 +137,15 @@ export function createDashboardServer(opts: ServerOptions) {
             cost_label: costLabel(),
           });
           return;
+        case '/api/daily':
+          json(res, {
+            rows: getDaily(db, range),
+            plan: detectPlan(),
+            cost_caveat: costCaveat(),
+            cost_label: costLabel(),
+          });
+          break;
+
         case '/api/timeline':
           json(res, getTimeline(db, range));
           return;

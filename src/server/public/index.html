@@ -38,6 +38,7 @@
       <nav class="tabs" role="tablist" aria-label="Views">
         <button type="button" role="tab" data-tab="overview" aria-selected="true">Overview</button>
         <button type="button" role="tab" data-tab="breakdown" aria-selected="false">Breakdown</button>
+        <button type="button" role="tab" data-tab="daily" aria-selected="false">Daily</button>
         <button type="button" role="tab" data-tab="budgets" aria-selected="false">Budgets</button>
         <button type="button" role="tab" data-tab="activity" aria-selected="false">Activity</button>
       </nav>
@@ -126,6 +127,32 @@
             <h3 class="breakdown-title">By tool</h3>
             <div id="bd-tools" class="ranked"></div>
           </div>
+        </div>
+      </section>
+      <section class="panel tabbed" data-panel="daily" hidden aria-labelledby="daily-title">
+        <div class="panel-head">
+          <div>
+            <h2 id="daily-title"><svg class="i" viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3" width="12" height="11" rx="1.5" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M2 6.5h12M5.5 2v2M10.5 2v2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Day by day</h2>
+            <p class="panel-sub">One row per calendar day. Quiet days are shown, not skipped.</p>
+          </div>
+        </div>
+        <p class="daily-caveat" id="daily-caveat" hidden></p>
+        <div class="table-scroll">
+          <table class="daily-table" id="daily-table">
+            <thead>
+              <tr>
+                <th scope="col">Day</th>
+                <th scope="col" class="num">Calls</th>
+                <th scope="col" class="num">Errors</th>
+                <th scope="col" class="num">Sessions</th>
+                <th scope="col" class="num">Tokens</th>
+                <th scope="col" class="num" id="daily-cost-head">Cost</th>
+                <th scope="col" class="bar-col">Relative</th>
+              </tr>
+            </thead>
+            <tbody id="daily-body"></tbody>
+            <tfoot id="daily-foot"></tfoot>
+          </table>
         </div>
       </section>
       <section class="panel tabbed" data-panel="overview" aria-labelledby="timeline-title">

@@ -304,6 +304,102 @@ export function getToolsBreakdown(db: DatabaseSync, range: Range): ToolBreakdown
     .all(...args) as unknown as ToolBreakdownRow[];
 }
 
+
+export interface DailyRow {
+  /** Local calendar date, YYYY-MM-DD. */
+  day: string;
+  calls: number;
+  errors: number;
+  blocked: number;
+  sessions: number;
+  tokens_in: number;
+  tokens_out: number;
+  cost_usd: number | null;
+  /** Calls whose model had no price, so the cost is a floor rather than a total. */
+  uncosted_calls: number;
+}
+
+/**
+ * Day-by-day totals.
+ *
+ * Built from tool_calls rather than sessions on purpose. A session's totals are
+ * stamped with its start date, so a run that began on the 25th and continued
+ * to the 29th would put five days of work onto one row - which is exactly the
+ * shape that makes a daily chart useless. Tool calls carry their own
+ * timestamps and land on the day they actually happened.
+ *
+ * Dates are grouped in local time, because a user comparing this against their
+ * own memory of Tuesday means their Tuesday, not UTC's.
+ */
+export function getDaily(db: DatabaseSync, range: Range): DailyRow[] {
+  const since = rangeStart(range);
+  const where = since ? 'WHERE started_at >= ?' : '';
+  const args = since ? [since] : [];
+
+  const calls = db
+    .prepare(
+      `SELECT date(started_at, 'localtime') AS day,
+              COUNT(*) AS calls,
+              COALESCE(SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END), 0) AS errors,
+              COALESCE(SUM(CASE WHEN status = 'blocked' THEN 1 ELSE 0 END), 0) AS blocked,
+              COALESCE(SUM(COALESCE(tokens_in, 0)), 0) AS tokens_in,
+              COALESCE(SUM(COALESCE(tokens_out, 0)), 0) AS tokens_out,
+              SUM(cost_usd) AS cost_usd,
+              COALESCE(SUM(CASE WHEN cost_usd IS NULL AND status <> 'pending' THEN 1 ELSE 0 END), 0)
+                AS uncosted_calls
+         FROM tool_calls ${where}
+        GROUP BY day`,
+    )
+    .all(...args) as unknown as Array<Omit<DailyRow, 'sessions'>>;
+
+  // Sessions are counted by their own start date: "how many runs did I begin
+  // that day" is the question a reader is actually asking of this column.
+  const sessions = db
+    .prepare(
+      `SELECT date(started_at, 'localtime') AS day, COUNT(*) AS n
+         FROM sessions ${where}
+        GROUP BY day`,
+    )
+    .all(...args) as unknown as Array<{ day: string; n: number }>;
+
+  const sessionsByDay = new Map(sessions.map((r) => [r.day, r.n]));
+  const byDay = new Map(calls.map((r) => [r.day, r]));
+
+  // Fill the gaps. A day with no activity is information - an absent row makes
+  // a chart silently compress time and read as if work were continuous.
+  const out: DailyRow[] = [];
+  const days = new Set<string>([...byDay.keys(), ...sessionsByDay.keys()]);
+  if (since) {
+    const start = new Date(since);
+    for (let d = new Date(start); d <= new Date(); d.setDate(d.getDate() + 1)) {
+      days.add(localDay(d));
+    }
+  }
+
+  for (const day of [...days].sort()) {
+    const row = byDay.get(day);
+    out.push({
+      day,
+      calls: Number(row?.calls ?? 0),
+      errors: Number(row?.errors ?? 0),
+      blocked: Number(row?.blocked ?? 0),
+      sessions: Number(sessionsByDay.get(day) ?? 0),
+      tokens_in: Number(row?.tokens_in ?? 0),
+      tokens_out: Number(row?.tokens_out ?? 0),
+      cost_usd: row?.cost_usd == null ? null : Number(row.cost_usd),
+      uncosted_calls: Number(row?.uncosted_calls ?? 0),
+    });
+  }
+
+  return out;
+}
+
+/** YYYY-MM-DD in local time, matching SQLite's date(..., 'localtime'). */
+function localDay(d: Date): string {
+  const p = (n: number): string => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
 export interface ToolCallRow {
   id: string;
   session_id: string;

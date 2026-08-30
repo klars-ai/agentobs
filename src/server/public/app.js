@@ -98,7 +98,7 @@ function setConnection(ok, message) {
 
 async function refresh() {
   try {
-    const [summary, timeline, tools, calls, sessions, projects, models, budgets] =
+    const [summary, timeline, tools, calls, sessions, projects, models, budgets, daily] =
       await Promise.all([
         fetchJson('/api/summary'),
         fetchJson('/api/timeline'),
@@ -108,6 +108,7 @@ async function refresh() {
         fetchJson('/api/projects'),
         fetchJson('/api/models'),
         fetchJson('/api/budgets'),
+        fetchJson('/api/daily'),
       ]);
 
     state.summary = summary;
@@ -119,6 +120,7 @@ async function refresh() {
     renderActivity(calls.calls ?? []);
     renderSessions(sessions.sessions ?? []);
 
+    renderDaily(daily);
     renderBudgets(budgets.budgets ?? []);
     renderRanked('bd-projects', projects.projects ?? [], {
       name: (r) => tildePath(r.project),
@@ -154,6 +156,120 @@ async function refresh() {
 }
 
 /* ---------- render ---------- */
+/**
+ * Day-by-day table.
+ *
+ * Built from tool calls rather than sessions, so a run spanning several days
+ * lands on the days it actually happened rather than all on the day it began.
+ * Zero days are rendered rather than skipped: an absent row makes a reader
+ * assume continuous work, and a quiet Sunday is real information.
+ */
+function renderDaily(payload) {
+  const rows = payload?.rows ?? [];
+  const body = document.getElementById('daily-body');
+  const foot = document.getElementById('daily-foot');
+  if (!body) return;
+
+  const head = document.getElementById('daily-cost-head');
+  if (head && payload?.cost_label) {
+    head.textContent = payload.cost_label === 'Spend' ? 'Cost' : 'API-equiv.';
+  }
+
+  const caveat = document.getElementById('daily-caveat');
+  if (caveat) {
+    if (payload?.cost_caveat) {
+      caveat.textContent = payload.cost_caveat;
+      caveat.hidden = false;
+    } else {
+      caveat.hidden = true;
+    }
+  }
+
+  body.textContent = '';
+  if (rows.length === 0) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = 7;
+    td.className = 'empty';
+    td.textContent = 'No activity in this range.';
+    tr.appendChild(td);
+    body.appendChild(tr);
+    return;
+  }
+
+  // The bar is scaled to the busiest day, so it answers "which days were heavy"
+  // at a glance without needing the numbers read.
+  const peak = Math.max(...rows.map((r) => r.calls), 1);
+  const today = new Date().toISOString().slice(0, 10);
+
+  for (const r of [...rows].reverse()) {
+    const tr = document.createElement('tr');
+    if (r.calls === 0) tr.className = 'quiet';
+
+    const day = document.createElement('th');
+    day.scope = 'row';
+    day.textContent = formatDay(r.day);
+    if (r.day === today) {
+      const tag = document.createElement('span');
+      tag.className = 'today-tag';
+      tag.textContent = 'today';
+      day.appendChild(tag);
+    }
+    tr.appendChild(day);
+
+    tr.appendChild(cell(count(r.calls), 'num'));
+    tr.appendChild(cell(r.errors > 0 ? count(r.errors) : '—', r.errors > 0 ? 'num err' : 'num dim'));
+    tr.appendChild(cell(r.sessions > 0 ? count(r.sessions) : '—', r.sessions > 0 ? 'num' : 'num dim'));
+    tr.appendChild(cell(count(r.tokens_in + r.tokens_out), 'num'));
+
+    // An unpriced day shows a dash, never $0.00 - the same unknown-is-not-zero
+    // rule the rest of the tool follows.
+    const costCell = cell(r.cost_usd === null ? '—' : money(r.cost_usd), 'num');
+    if (r.cost_usd === null) costCell.classList.add('dim');
+    else if (r.uncosted_calls > 0) {
+      costCell.title = `${r.uncosted_calls} call(s) had no price, so this is a floor.`;
+      costCell.textContent += '+';
+    }
+    tr.appendChild(costCell);
+
+    const barCell = document.createElement('td');
+    barCell.className = 'bar-col';
+    const bar = document.createElement('span');
+    bar.className = 'daily-bar';
+    bar.style.width = `${Math.round((r.calls / peak) * 100)}%`;
+    bar.title = `${count(r.calls)} calls`;
+    barCell.appendChild(bar);
+    tr.appendChild(barCell);
+
+    body.appendChild(tr);
+  }
+
+  if (foot) {
+    foot.textContent = '';
+    const tr = document.createElement('tr');
+    const label = document.createElement('th');
+    label.scope = 'row';
+    label.textContent = `${rows.length} days`;
+    tr.appendChild(label);
+    const sum = (k) => rows.reduce((a, r) => a + (r[k] ?? 0), 0);
+    const costTotal = rows.reduce((a, r) => a + (r.cost_usd ?? 0), 0);
+    tr.appendChild(cell(count(sum('calls')), 'num'));
+    tr.appendChild(cell(count(sum('errors')), 'num'));
+    tr.appendChild(cell(count(sum('sessions')), 'num'));
+    tr.appendChild(cell(count(sum('tokens_in') + sum('tokens_out')), 'num'));
+    tr.appendChild(cell(money(costTotal), 'num'));
+    tr.appendChild(document.createElement('td'));
+    foot.appendChild(tr);
+  }
+}
+
+/** "Sat 30 Aug" - short enough for a column, unambiguous across months. */
+function formatDay(iso) {
+  const d = new Date(`${iso}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
 
 function renderSummary(s) {
   document.getElementById('hero-cost').textContent = money(s.total_cost_usd);

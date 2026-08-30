@@ -1281,3 +1281,108 @@ tbody td:first-child {
   line-height: 1.5;
   color: var(--text-muted);
 }
+
+/* Day-by-day table
+   A dense read: one row per day for a month, so the type is small, the digits
+   are tabular so columns line up, and the relative bar carries the shape of
+   the month without the reader parsing every number. */
+.table-scroll {
+  overflow-x: auto;
+}
+
+.daily-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.daily-table th,
+.daily-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--grid);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.daily-table thead th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  font-weight: 650;
+  border-bottom: 1px solid var(--border);
+}
+
+.daily-table .num,
+.daily-table td.num {
+  text-align: right;
+}
+
+.daily-table tbody th {
+  font-weight: 550;
+  color: var(--text-primary);
+}
+
+/* A day with no activity is information, not an error - state it quietly
+   rather than hiding the row and compressing time. */
+.daily-table tr.quiet th,
+.daily-table tr.quiet td {
+  color: var(--text-muted);
+}
+
+.daily-table td.dim {
+  color: var(--text-muted);
+}
+
+.daily-table td.err {
+  color: var(--status-critical);
+}
+
+.today-tag {
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: color-mix(in srgb, var(--series-1) 14%, transparent);
+  color: var(--series-1);
+}
+
+.daily-table .bar-col {
+  width: 22%;
+  min-width: 90px;
+}
+
+.daily-bar {
+  display: block;
+  height: 7px;
+  min-width: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--series-1), color-mix(in srgb, var(--series-1) 55%, transparent));
+}
+
+.daily-table tfoot th,
+.daily-table tfoot td {
+  border-top: 1.5px solid var(--border);
+  border-bottom: none;
+  font-weight: 650;
+  color: var(--text-primary);
+  padding-top: 11px;
+}
+
+.daily-table td.empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 28px 12px;
+}
+
+.daily-caveat {
+  margin: 0 0 14px;
+  max-width: 74ch;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
