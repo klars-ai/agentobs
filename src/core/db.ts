@@ -107,6 +107,7 @@ function migrate(db: DatabaseSync): void {
 
     { table: 'budgets', column: 'limit_tokens', definition: 'INTEGER' },
     { table: 'policy_decisions', column: 'synced_at', definition: 'TEXT' },
+    { table: 'approvals', column: 'expires_at', definition: 'TEXT' },
   ];
 
   for (const { table, column, definition } of additions) {

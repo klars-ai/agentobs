@@ -38,6 +38,7 @@ import {
 import { contextFromToolInput, evaluate, loadPolicy } from '../core/policy-engine.js';
 import { blockingBudget, checkBudgets } from '../core/budget.js';
 import { notify } from '../core/notify.js';
+import { checkApproval, requestApproval } from '../core/approvals.js';
 import { attachTranscriptUsage } from './transcript.js';
 
 const AGENT_NAME = 'claude-code';
@@ -209,9 +210,82 @@ export function handleHook(payload: HookPayload): HookResult {
         return { exitCode: 0 };
       }
 
-      // Blocked, or needs approval - which v1 treats as a block with a
-      // clearer message, since there is no interactive approval channel from
-      // inside a hook.
+      // needs_approval now genuinely asks. The hook cannot prompt - stdin and
+      // stdout belong to Claude Code - so it records the request, refuses this
+      // attempt, and lets the agent's retry succeed once the user has said
+      // yes. An approval already granted for this exact call passes straight
+      // through.
+      if (verdict.decision === 'needs_approval') {
+        const existing = checkApproval(db, toolName, payload.tool_input);
+
+        if (existing === 'approved') {
+          beginToolCall(db, {
+            id,
+            sessionId,
+            toolName,
+            input: payload.tool_input,
+            status: 'pending',
+          });
+          recordPolicyDecision(db, {
+            toolCallId: id,
+            sessionId,
+            toolName,
+            ruleMatched: verdict.rule?.name ?? null,
+            decision: 'allow',
+            reason: 'approved by the user',
+          });
+          return { exitCode: 0 };
+        }
+
+        const req = requestApproval(db, {
+          sessionId,
+          toolName,
+          toolInput: payload.tool_input,
+          ruleMatched: verdict.rule?.name ?? null,
+        });
+
+        beginToolCall(db, {
+          id,
+          sessionId,
+          toolName,
+          input: payload.tool_input,
+          status: 'blocked',
+        });
+        recordPolicyDecision(db, {
+          toolCallId: id,
+          sessionId,
+          toolName,
+          ruleMatched: verdict.rule?.name ?? null,
+          decision: 'needs_approval',
+          reason: verdict.message,
+        });
+
+        if (existing !== 'denied') {
+          notify({
+            title: 'AgentObs: approval needed',
+            body: `${toolName} is waiting on you. Run: agentobs approve ${req.id.slice(0, 8)}`,
+            urgent: true,
+          });
+        }
+
+        const reason =
+          existing === 'denied'
+            ? `${verdict.message} You denied this call. Run "agentobs approve ${req.id.slice(0, 8)}" to allow it, then try again.`
+            : `${verdict.message} Approve it with "agentobs approve ${req.id.slice(0, 8)}" (or in the dashboard), then retry - the approval is remembered for 60 minutes.`;
+
+        return {
+          stdout: JSON.stringify({
+            hookSpecificOutput: {
+              hookEventName: 'PreToolUse',
+              permissionDecision: 'deny',
+              permissionDecisionReason: reason,
+            },
+          }),
+          exitCode: 0,
+        };
+      }
+
+      // A plain block.
       beginToolCall(db, {
         id,
         sessionId,
@@ -228,10 +302,7 @@ export function handleHook(payload: HookPayload): HookResult {
         reason: verdict.message,
       });
 
-      const reason =
-        verdict.decision === 'needs_approval'
-          ? `${verdict.message} This needs your approval: edit ~/.agentobs/policy.json or run "agentobs policy test ${toolName} <input>" to check the rule.`
-          : `${verdict.message} (AgentObs rule: ${verdict.rule?.name ?? 'unnamed'})`;
+      const reason = `${verdict.message} (AgentObs rule: ${verdict.rule?.name ?? 'unnamed'})`;
 
       return {
         stdout: JSON.stringify({

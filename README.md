@@ -151,6 +151,11 @@ agentobs policy init                 Write a starter policy.json
 agentobs policy check                Validate it and list active rules
 agentobs policy test <tool> <input>  Dry-run a call against the policy
 
+agentobs approvals                   Tool calls held for your approval
+agentobs approve <id> | --all        Allow one, or everything pending
+agentobs deny <id>                   Refuse one
+agentobs prune --older-than 90       Delete old data, reclaim disk space
+
 agentobs budget                      Spend and token use against your limits
 agentobs budget set --daily 5        Warn past $5 today
 agentobs budget set --monthly 100 --block        Stop at $100 this month
@@ -281,8 +286,18 @@ $ agentobs policy test Bash "rm -rf ./build"
 
 Two deliberate behaviours worth knowing:
 
-- **`needs_approval` currently behaves as a block** with a clearer message.
-  There is no channel for a hook to prompt you interactively mid-call.
+- **`needs_approval` holds the call and asks you.** A hook cannot prompt -
+  stdin and stdout belong to Claude Code - so the call is refused, recorded,
+  and you decide out-of-band:
+
+  ```bash
+  agentobs approvals          # what is waiting
+  agentobs approve a1b2c3d4   # then ask the agent to retry
+  ```
+
+  The approval is remembered for 60 minutes and is scoped to that exact call:
+  approving `rm -rf ./build` never authorises `rm -rf /`. The first attempt is
+  always refused - it is approve-then-retry, not a live prompt.
 - **A broken policy file fails open.** Invalid JSON or a malformed rule
   degrades to allow-everything and reports the problem, because a guardrail
   that wedges your agent is worse than no guardrail. Run `agentobs policy check`.

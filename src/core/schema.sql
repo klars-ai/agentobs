@@ -116,3 +116,25 @@ CREATE TABLE IF NOT EXISTS budget_events (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_budget_events_once
   ON budget_events(budget_id, period_key);
 CREATE INDEX IF NOT EXISTS idx_sessions_cwd ON sessions(cwd);
+
+-- Interactive approvals. A PreToolUse hook has no channel to the user - stdin
+-- and stdout both belong to Claude Code - so a needs_approval call is recorded
+-- here and refused, the user decides out-of-band, and the agent's retry of the
+-- same call finds the answer waiting.
+CREATE TABLE IF NOT EXISTS approvals (
+  id             TEXT PRIMARY KEY,
+  -- Hash of tool name + exact input: an approval for "rm -rf ./build" must
+  -- not also authorise "rm -rf /".
+  fingerprint    TEXT NOT NULL,
+  session_id     TEXT,
+  tool_name      TEXT NOT NULL,
+  input_summary  TEXT,
+  rule_matched   TEXT,
+  state          TEXT NOT NULL DEFAULT 'pending',   -- pending | approved | denied
+  requested_at   TEXT NOT NULL,
+  decided_at     TEXT,
+  expires_at     TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_approvals_fingerprint ON approvals(fingerprint);
+CREATE INDEX IF NOT EXISTS idx_approvals_state ON approvals(state, requested_at);

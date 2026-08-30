@@ -34,6 +34,7 @@ import {
 } from '../core/queries.js';
 import { loadPolicy } from '../core/policy-engine.js';
 import { checkBudgets } from '../core/budget.js';
+import { listApprovals } from '../core/approvals.js';
 import { forecastBudget } from '../core/forecast.js';
 
 const PUBLIC_DIR = join(dirname(fileURLToPath(import.meta.url)), 'public');
@@ -150,6 +151,9 @@ export function createDashboardServer(opts: ServerOptions) {
           return;
         case '/api/models':
           json(res, { models: getModels(db, range) });
+          return;
+        case '/api/approvals':
+          json(res, { approvals: listApprovals(db, { state: 'pending' }) });
           return;
         case '/api/projects':
           json(res, { projects: getProjects(db, range) });

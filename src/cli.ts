@@ -126,6 +126,26 @@ the PreToolUse hook.`,
     });
 
   program
+    .command('prune')
+    .description('Delete old data and reclaim disk space')
+    .option('--older-than <days>', 'delete data older than this many days', '90')
+    .option('--sessions', 'remove whole sessions too, not just their tool calls', false)
+    .option('--dry-run', 'report what would go, delete nothing', false)
+    .option('--yes', 'skip the confirmation', false)
+    .addHelpText(
+      'after',
+      `
+By default only per-call detail and policy decisions are removed, so your
+cost history survives. --sessions drops the sessions as well.
+
+Deleting is irreversible, so it asks for --yes unless you pass --dry-run.`,
+    )
+    .action(async (opts) => {
+      const { prune } = await import('./commands/prune.js');
+      await prune(opts);
+    });
+
+  program
     .command('export')
     .description('Export recorded data')
     .requiredOption('--format <format>', 'csv or json')
@@ -155,6 +175,34 @@ the PreToolUse hook.`,
     .action(async (opts) => {
       const { projects } = await import('./commands/projects.js');
       await projects(opts);
+    });
+
+  program
+    .command('approvals')
+    .description('Tool calls held for your approval')
+    .option('--all', 'include already-decided requests', false)
+    .action(async (opts) => {
+      const { approvals } = await import('./commands/approve.js');
+      await approvals(opts);
+    });
+
+  program
+    .command('approve')
+    .description('Allow a held tool call')
+    .argument('[id]', 'request id or prefix')
+    .option('--all', 'approve everything pending', false)
+    .action(async (id: string | undefined, opts) => {
+      const { approve } = await import('./commands/approve.js');
+      await approve(id, opts);
+    });
+
+  program
+    .command('deny')
+    .description('Refuse a held tool call')
+    .argument('<id>', 'request id or prefix')
+    .action(async (id: string) => {
+      const { deny } = await import('./commands/approve.js');
+      await deny(id);
     });
 
   program
