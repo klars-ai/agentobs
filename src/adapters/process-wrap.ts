@@ -72,14 +72,25 @@ export async function runWrapped(command: string[], opts: RunOptions = {}): Prom
     // (`agentobs run -- claude`) while spawn still escapes each argument.
     const executable = process.platform === 'win32' ? resolveWindowsExecutable(command[0]) : command[0];
 
-    const child = spawn(executable, command.slice(1), {
-      cwd,
-      stdio: 'inherit',
-      // A .cmd shim is a batch script, so it does need a shell interpreter -
-      // but only for the shim itself, and cmd.exe applies its own escaping.
-      shell: /\.(cmd|bat)$/i.test(executable),
-      windowsHide: true,
-    });
+    // A .cmd/.bat file is a batch script: Windows cannot exec it directly, it
+    // must run through cmd.exe. Spawning cmd.exe explicitly with /d /s /c and
+    // a quoted command line is the only form that survives BOTH a path
+    // containing spaces (C:\Program Files\nodejs\npm.cmd) and arguments
+    // containing spaces. `shell: true` cannot do this - it concatenates
+    // without quoting (Node DEP0190), so the path breaks at the first space.
+    const isBatch = process.platform === 'win32' && /\.(cmd|bat)$/i.test(executable);
+
+    const child = isBatch
+      ? spawn(
+          process.env.COMSPEC ?? 'cmd.exe',
+          ['/d', '/s', '/c', `"${quoteWindows(executable, command.slice(1))}"`],
+          { cwd, stdio: 'inherit', windowsHide: true, windowsVerbatimArguments: true },
+        )
+      : spawn(executable, command.slice(1), {
+          cwd,
+          stdio: 'inherit',
+          windowsHide: true,
+        });
 
     const finish = (code: number): void => {
       sink({ type: 'session_end', sessionId, exitCode: code } satisfies AgentEvent);
@@ -115,6 +126,20 @@ export async function runWrapped(command: string[], opts: RunOptions = {}): Prom
 }
 
 /**
+ * Builds a cmd.exe command line, quoting each part that needs it.
+ *
+ * Used with windowsVerbatimArguments so Node passes this string through
+ * untouched; cmd.exe then does its own parsing. Each element is quoted only
+ * when it contains a space or a quote, because unnecessary quoting can change
+ * how some batch scripts interpret their arguments.
+ */
+function quoteWindows(executable: string, args: string[]): string {
+  const quote = (s: string): string =>
+    /[\s"]/.test(s) ? `"${s.replace(/"/g, '\\"')}"` : s;
+  return [quote(executable), ...args.map(quote)].join(' ');
+}
+
+/**
  * Finds the real file behind a bare command name on Windows.
  *
  * Windows has no execvp: `spawn("npm")` fails because the thing on PATH is
@@ -133,12 +158,20 @@ function resolveWindowsExecutable(command: string): string {
   const dirs = (process.env.PATH ?? '').split(';').filter(Boolean);
 
   for (const dir of dirs) {
-    for (const ext of ['', ...exts]) {
-      const candidate = join(dir, command + ext.toLowerCase());
-      if (existsSync(candidate)) return candidate;
+    // Try the PATHEXT extensions BEFORE the bare name. Node ships both `npm`
+    // (an extensionless shell script, for Git Bash) and `npm.cmd` in the same
+    // directory; the bare file exists but Windows cannot execute it, so
+    // checking it first resolves to something that fails with ENOENT.
+    for (const ext of exts) {
+      const lower = join(dir, command + ext.toLowerCase());
+      if (existsSync(lower)) return lower;
       const upper = join(dir, command + ext);
       if (existsSync(upper)) return upper;
     }
+    // Only fall back to the bare name if no extension matched - covers a real
+    // extensionless executable, which is rare on Windows but not impossible.
+    const bare = join(dir, command);
+    if (existsSync(bare)) return bare;
   }
   return command;
 }
