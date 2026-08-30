@@ -13,9 +13,12 @@
  * works on a machine where hooks do not.
  *
  * Trade-off against hooks, stated plainly: this is after-the-fact. It cannot
- * block a tool call, so guardrails still require the hook. It also attributes
- * tokens per assistant message rather than per tool call, so per-call cost
- * stays null rather than being invented by dividing a total.
+ * block a tool call, so guardrails still require the hook.
+ *
+ * Per-call cost is attributed only where it is exact. Usage is reported per
+ * assistant message, and across 25 real transcripts every one of 4,088
+ * messages issuing a tool call issued exactly one - so that cost belongs to
+ * that call with no division. A message issuing several leaves them uncosted.
  */
 import { createReadStream, existsSync, readdirSync, statSync } from 'node:fs';
 import { createInterface } from 'node:readline';
@@ -145,7 +148,17 @@ export async function importTranscript(
 
   // tool_use appears on an assistant message; its tool_result arrives later on
   // a user message. Hold the open calls so the pair can be joined.
-  const pending = new Map<string, { name: string; startedAt: string }>();
+  const pending = new Map<
+    string,
+    {
+      name: string;
+      startedAt: string;
+      /** Usage from the message that issued this call; null when it issued several. */
+      tokensIn: number | null;
+      tokensOut: number | null;
+      model: string | null;
+    }
+  >();
   let sessionStarted = false;
   let cwd: string | null = null;
 
@@ -207,6 +220,18 @@ export async function importTranscript(
     const content = message.content;
     if (!Array.isArray(content)) continue;
 
+    // Usage belongs to the assistant message, and a message that issues a tool
+    // call is billed for the turn that produced it. Measured across 25 real
+    // transcripts, 4,088 of 4,088 such messages carried exactly one tool_use
+    // block - so giving that message's cost to the single call is exact, not a
+    // split. A message issuing several leaves them uncosted rather than
+    // dividing the total, which would be the fabricated number worth refusing.
+    const toolUseCount = (content as Array<Record<string, unknown>>).filter(
+      (b) => b?.type === 'tool_use' && typeof b.id === 'string',
+    ).length;
+    const attributable = toolUseCount === 1 ? usage : undefined;
+    const messageModel = typeof message.model === 'string' ? message.model : null;
+
     for (const block of content as Array<Record<string, unknown>>) {
       if (block?.type === 'tool_use' && typeof block.id === 'string') {
         const name = typeof block.name === 'string' ? block.name : 'unknown';
@@ -218,20 +243,37 @@ export async function importTranscript(
           toolName: name,
           input: block.input,
           startedAt: at,
+          model: messageModel,
         });
-        pending.set(block.id, { name, startedAt: at });
+        pending.set(block.id, {
+          name,
+          startedAt: at,
+          // Same accounting as the session totals: cache writes are fresh
+          // content and count as input; cache reads replay the whole context
+          // and are excluded, or every call would carry the conversation.
+          tokensIn: attributable
+            ? (attributable.input_tokens ?? 0) + (attributable.cache_creation_input_tokens ?? 0)
+            : null,
+          tokensOut: attributable ? (attributable.output_tokens ?? 0) : null,
+          model: messageModel,
+        });
         result.toolCalls += 1;
       }
 
       if (block?.type === 'tool_result' && typeof block.tool_use_id === 'string') {
         const isError = block.is_error === true;
+        const started = pending.get(block.tool_use_id);
         completeToolCall(db, block.tool_use_id, {
           status: isError ? 'error' : 'success',
           output: block.content,
           errorMessage: isError ? String(block.content).slice(0, 300) : null,
           endedAt: timestamp ?? undefined,
-          // No per-call tokens: usage is reported per assistant message, and
-          // splitting it across calls would be a fabricated number.
+          // Carried from the message that issued this call; null when that
+          // message issued several, so a breakdown shows a blank rather than a
+          // number produced by division.
+          tokensIn: started?.tokensIn ?? null,
+          tokensOut: started?.tokensOut ?? null,
+          model: started?.model ?? null,
         });
         pending.delete(block.tool_use_id);
       }

@@ -127,7 +127,14 @@ export function completeToolCall(
   const endedAt = input.endedAt ?? nowIso();
   const durationMs = Math.max(0, Date.parse(endedAt) - Date.parse(row.started_at));
   const model = input.model ?? row.model;
-  const cost = computeCost(model, input.tokensIn, input.tokensOut);
+  // No token counts means the cost is unknown, not zero. computeCost coerces
+  // nulls to 0 and would return $0.00, which reads as "this call was free"
+  // rather than "we could not attribute a cost to it" - the same
+  // unknown-is-not-zero rule the rest of the tool follows.
+  const cost =
+    input.tokensIn == null && input.tokensOut == null
+      ? null
+      : computeCost(model, input.tokensIn, input.tokensOut);
   const summary = redact(input.output);
 
   db.prepare(
