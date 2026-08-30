@@ -41,10 +41,13 @@ export async function init(opts: InitOptions = {}): Promise<void> {
   const db = openDb();
   const deviceId = ensureDeviceId(db);
 
+  let pricingAdded: string[] = [];
   if (opts.force && existsSync(paths.pricing())) {
     writeFileSync(paths.pricing(), `${JSON.stringify(DEFAULT_PRICING, null, 2)}\n`, 'utf8');
   } else {
-    writeDefaultPricing();
+    // Tops up an existing table with models it lacks, so someone who installed
+    // before a model shipped is not left with blank costs and no explanation.
+    pricingAdded = writeDefaultPricing().added;
   }
 
   // A starter policy costs nothing and means the guardrails are real from the
@@ -56,7 +59,7 @@ export async function init(opts: InitOptions = {}): Promise<void> {
 
   Home      ${home}
   Database  ${paths.db()}
-  Pricing   ${paths.pricing()}
+  Pricing   ${paths.pricing()}${pricingAdded.length > 0 ? ` (added ${pricingAdded.length} new model${pricingAdded.length === 1 ? '' : 's'})` : ''}
   Policy    ${paths.policy()}${policyExisted ? ' (kept your existing rules)' : ' (starter rules)'}
   Device    ${deviceId}
 `);

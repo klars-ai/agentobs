@@ -71,12 +71,55 @@ export function loadPricing(force = false): PricingTable {
   return cache;
 }
 
-export function writeDefaultPricing(): string {
+export interface PricingWriteResult {
+  file: string;
+  /** Model ids added to an existing file because it did not have them. */
+  added: string[];
+}
+
+/**
+ * Writes the seed table, or tops up an existing one with models it lacks.
+ *
+ * The top-up matters more than it looks. This file is written once at install
+ * and then never touched, so a user who installed before a model existed is
+ * stuck without it forever - and the symptom is silent, because an unpriced
+ * model reports no cost rather than an error. Someone who installed a week ago
+ * and now runs Opus 5 sees a blank dashboard and no explanation.
+ *
+ * Only missing ids are added. A price the user has edited is theirs, and
+ * overwriting it would be worse than being out of date: this file exists
+ * precisely so an organisation can enter its contracted rates.
+ */
+export function writeDefaultPricing(): PricingWriteResult {
   const file = paths.pricing();
+
   if (!existsSync(file)) {
     writeFileSync(file, `${JSON.stringify(DEFAULT_PRICING, null, 2)}\n`, 'utf8');
+    return { file, added: [] };
   }
-  return file;
+
+  try {
+    const current = JSON.parse(readFileSync(file, 'utf8')) as PricingTable;
+    if (!current?.models) return { file, added: [] };
+
+    const added = Object.keys(DEFAULT_PRICING.models).filter((id) => !(id in current.models));
+    if (added.length === 0) return { file, added: [] };
+
+    const merged: PricingTable = {
+      ...current,
+      updated: DEFAULT_PRICING.updated,
+      models: { ...current.models },
+    };
+    for (const id of added) merged.models[id] = DEFAULT_PRICING.models[id];
+
+    writeFileSync(file, `${JSON.stringify(merged, null, 2)}\n`, 'utf8');
+    cache = null; // a later read in this process must see the new entries
+    return { file, added };
+  } catch {
+    // A hand-edited file that no longer parses is the user's to fix; replacing
+    // it would discard whatever they meant to write.
+    return { file, added: [] };
+  }
 }
 
 /**
