@@ -36,6 +36,7 @@ import {
 import { loadPolicy } from '../core/policy-engine.js';
 import { checkBudgets } from '../core/budget.js';
 import { getHints } from '../core/advice.js';
+import { TOOL_INFO } from '../core/tool-info.js';
 import { costCaveat, costLabel, detectPlan } from '../core/plan.js';
 import { listApprovals } from '../core/approvals.js';
 import { allSources, discover } from '../adapters/agent-sources.js';
@@ -138,6 +139,12 @@ export function createDashboardServer(opts: ServerOptions) {
             cost_label: costLabel(),
           });
           return;
+        case '/api/tool-info':
+          // Served rather than duplicated in the browser bundle, so the
+          // descriptions have exactly one source of truth.
+          json(res, { tools: TOOL_INFO });
+          return;
+
         case '/api/hints':
           json(res, { hints: getHints(db, range) });
           return;

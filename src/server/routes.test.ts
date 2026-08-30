@@ -27,6 +27,7 @@ const ROUTES = [
   '/api/summary',
   '/api/daily',
   '/api/hints',
+  '/api/tool-info',
   '/api/timeline',
   '/api/tools-breakdown',
   '/api/tool-calls',

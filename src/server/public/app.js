@@ -11,6 +11,8 @@ const state = {
   // doing" - it averages a quiet Sunday into a heavy Tuesday and hides the
   // thing the user opened the dashboard to check, which is now.
   range: 'today',
+  /** Tool name -> {description, category}, loaded once. */
+  toolInfo: null,
   status: '',
   timeline: [],
   sparklines: null,
@@ -73,6 +75,14 @@ function cell(text, className) {
   return td;
 }
 
+/** A cell holding an element rather than plain text. */
+function cellNode(node, className) {
+  const td = document.createElement('td');
+  td.appendChild(node);
+  if (className) td.className = className;
+  return td;
+}
+
 function statusPill(status) {
   const span = document.createElement('span');
   const known = ['success', 'error', 'blocked', 'pending'].includes(status);
@@ -115,6 +125,16 @@ async function refresh() {
         fetchJson('/api/hints'),
       ]);
 
+    // Fetched once and cached: the descriptions never change while the page is
+    // open, so re-requesting them on every 5s poll would be waste.
+    if (!state.toolInfo) {
+      try {
+        state.toolInfo = (await fetchJson('/api/tool-info')).tools ?? {};
+      } catch {
+        state.toolInfo = {};
+      }
+    }
+
     state.summary = summary;
     renderSummary(summary);
     state.timeline = timeline;
@@ -141,6 +161,7 @@ async function refresh() {
     });
     renderRanked('bd-tools', tools ?? [], {
       name: (r) => r.tool_name,
+      describe: true,
       value: (r) => r.cost_usd ?? r.calls,
       sub: (r) => `${count(r.calls)} calls · ${count(r.errors)} errors`,
       format: (v) => (v < 1 ? money(v) : count(v)),
@@ -161,6 +182,47 @@ async function refresh() {
 }
 
 /* ---------- render ---------- */
+/**
+ * Turns a tool name into a label that explains itself on hover.
+ *
+ * A row reading "Bash 11,266" answers nothing for someone who has not used
+ * these tools. The name stays exactly as recorded - renaming it in the UI
+ * would break the connection to the logs - and the explanation arrives on
+ * hover, where it costs nothing to ignore.
+ *
+ * A tool we do not recognise gets no tooltip and no dotted underline, rather
+ * than a plausible-sounding guess. MCP servers contribute arbitrary names.
+ */
+function toolLabel(name) {
+  const span = document.createElement('span');
+  span.textContent = name;
+
+  const info = state.toolInfo?.[String(name).toLowerCase()] ?? mcpInfo(name);
+  if (!info) return span;
+
+  span.className = 'tool-name';
+  span.title = info.description;
+  span.dataset.cat = info.category;
+  // Announced to a screen reader, which never sees a title attribute on hover.
+  span.setAttribute('aria-label', `${name}: ${info.description}`);
+  return span;
+}
+
+/** Description for a tool name, from the cached map or the MCP naming scheme. */
+function describeToolName(name) {
+  return state.toolInfo?.[String(name).toLowerCase()] ?? mcpInfo(name);
+}
+
+/** MCP tools are namespaced mcp__server__tool; name the server rather than guess. */
+function mcpInfo(name) {
+  const m = /^mcp__([^_]+(?:_[^_]+)*?)__(.+)$/.exec(String(name));
+  if (!m) return null;
+  return {
+    description: `Provided by the "${m[1]}" MCP server. AgentObs does not know what this tool does - only the server does.`,
+    category: 'other',
+  };
+}
+
 /**
  * Optimisation hints.
  *
@@ -420,7 +482,7 @@ function renderTools(rows) {
   for (const row of rows) {
     const tr = document.createElement('tr');
     const name = cell('');
-    name.append(document.createTextNode(row.tool_name));
+    name.append(toolLabel(row.tool_name));
     if (row.blocked > 0) {
       const badge = document.createElement('span');
       badge.className = 'badge';
@@ -509,7 +571,7 @@ function renderActivity(rows) {
 
     tr.append(
       status,
-      cell(row.tool_name),
+      cellNode(toolLabel(row.tool_name)),
       input,
       cell(relativeTime(row.started_at)),
       cell(ms(row.duration_ms), 'num'),
@@ -969,7 +1031,7 @@ async function openSession(sessionId) {
         tr.append(
           cell(String(i + 1), 'num'),
           status,
-          cell(c.tool_name),
+          cellNode(toolLabel(c.tool_name)),
           input,
           cell(ms(c.duration_ms), 'num'),
         );
@@ -1155,7 +1217,7 @@ function tildePath(p) {
   );
 }
 
-function renderRanked(elementId, rows, { name, value, sub, format }) {
+function renderRanked(elementId, rows, { name, value, sub, format, describe }) {
   const host = document.getElementById(elementId);
   if (!host) return;
   host.replaceChildren();
@@ -1182,7 +1244,11 @@ function renderRanked(elementId, rows, { name, value, sub, format }) {
     const nameEl = document.createElement('span');
     nameEl.className = 'rank-name';
     nameEl.textContent = name(row);
-    nameEl.title = name(row);
+    // The tooltip explains what the tool does when we know; otherwise it falls
+    // back to the full name, which is still useful when the label is truncated.
+    const described = describe ? describeToolName(name(row)) : null;
+    nameEl.title = described ? `${name(row)} - ${described.description}` : name(row);
+    if (described) nameEl.classList.add('tool-name');
     const valEl = document.createElement('span');
     valEl.className = 'rank-value';
     // Unknown is not zero. Showing $0.00 for a call whose model has no price

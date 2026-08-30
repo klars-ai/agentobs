@@ -1465,3 +1465,16 @@ tbody td:first-child {
     justify-self: start;
   }
 }
+
+/* Tool names carrying an explanation
+   A dotted underline is the long-standing convention for "there is more here
+   on hover". Deliberately subtle: these are on nearly every row, so anything
+   louder would turn the tables into noise. */
+.tool-name {
+  border-bottom: 1px dotted var(--text-muted);
+  cursor: help;
+}
+
+.tool-name:hover {
+  border-bottom-color: var(--text-secondary);
+}
