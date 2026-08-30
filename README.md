@@ -23,11 +23,12 @@
 
 <br>
 
-## The only agent tool that can say no
+## Enforces more than a dollar figure
 
-Every other Claude Code tool is read-only — they tell you what happened
-*after* it happened. AgentObs is a control plane: it sets limits and enforces
-them before a call runs.
+Most Claude Code tools are read-only — they tell you what happened *after* it
+happened. A couple can block on cumulative dollars. AgentObs is a control
+plane: it enforces token budgets, rolling rate-limit windows, command policy
+and scoped approvals, all before a call runs.
 
 ```
 $ agentobs budget set --daily 5 --block
@@ -161,6 +162,10 @@ agentobs budget set --daily 5        Warn past $5 today
 agentobs budget set --monthly 100 --block        Stop at $100 this month
 agentobs budget set --block5h 200000 --tokens    Watch your 5-hour window
 
+agentobs notify set <url>            Send alerts to Slack, Discord, or your own endpoint
+agentobs notify test                 Send a real test alert and report what came back
+agentobs notify list | remove <url>  Show or remove destinations
+
 agentobs forecast [--watch]          When will you hit your limit?
 agentobs statusline                  Compact line for Claude Code's status bar
 agentobs mcp                         MCP server: let the agent query its own usage
@@ -236,8 +241,8 @@ $ agentobs forecast
   14h 16m before the period resets.
 ```
 
-A forecast needs the limit *and* the usage, which is why a read-only usage
-tool cannot tell you this. `--watch` refreshes it live.
+A forecast needs the limit *and* the usage, which is why a tool that only
+reports usage cannot tell you this. `--watch` refreshes it live.
 
 The rate is measured over the last hour of **actual activity**, not the whole
 period: averaging a 40-minute burst across four idle hours dilutes it roughly
@@ -246,6 +251,52 @@ too few samples it says so rather than projecting from noise.
 
 ---
 
+
+## Alerts
+
+A budget that blocks at 2am is silent until someone looks at a terminal.
+`agentobs notify` sends the breach somewhere you will actually see it.
+
+```bash
+agentobs notify set https://hooks.slack.com/services/T00/B00/xxxx
+agentobs notify test          # confirm it arrives before you rely on it
+```
+
+Slack and Discord webhooks both work with no extra configuration. For your own
+receiver, `--format json` posts a structured event instead:
+
+```json
+{
+  "source": "agentobs",
+  "kind": "budget_exceeded",
+  "title": "AgentObs: daily budget blocked — $5.02 of $5.00",
+  "detail": "Further tool calls are refused until the daily period resets.",
+  "data": { "period": "daily", "spent": 5.02, "limit": 5, "unit": "usd", "action": "block" },
+  "sent_at": "2026-08-30T02:00:00.000Z"
+}
+```
+
+**This does not weaken the privacy promise.** There is no default endpoint and
+no vendor: nothing is sent until you write a destination into
+`~/.agentobs/notify.json` yourself, and it goes only where you named. *No
+telemetry* means AgentObs does not phone home — not that you cannot be told
+when your own agent is blocked.
+
+Three things are enforced regardless:
+
+- **Payloads carry budget names and numbers, never tool inputs**, file
+  contents, prompts or paths — and the text is run through the same redaction
+  rules as everything else before it leaves.
+- **Plain `http` to a remote host is refused.** A Slack webhook carries its
+  secret in the URL path, so sending one unencrypted would leak it. `https`
+  anywhere, or `http` on localhost, are both fine.
+- **Alerts fire once per period, not once per tool call**, and a dead or slow
+  endpoint is abandoned after a short timeout rather than delaying your agent.
+
+Alerts are sent for budget breaches and approval requests. Narrow that with
+`--events budget_exceeded` if you only want the money.
+
+---
 ## Guardrails
 
 `agentobs policy init` writes `~/.agentobs/policy.json`:
@@ -310,7 +361,8 @@ Two deliberate behaviours worth knowing:
 | --- | --- | --- | --- |
 | **Claude Code** | `agentobs import` | **Rich** — every tool call, tokens, cost | **No** |
 | **Claude Code** | Native hooks | **Rich**, live, and can *block* calls | Yes — `init` writes them |
-| Copilot CLI, Codex, Gemini CLI, OpenCode | `agentobs agents --import` | Log-based, **format unverified** | No |
+| **Codex CLI**, **Gemini CLI** | `agentobs agents --import` | Log-based, **format verified** | No |
+| Copilot CLI, OpenCode | `agentobs agents --import` | Log-based, **format unverified** | No |
 | Any CLI agent | `agentobs run -- <cmd>` | **Coarse** — duration and exit code only | No |
 | Custom / in-house | `agentobs watch <file>` | **Rich**, if it writes JSONL | No |
 
@@ -319,11 +371,26 @@ agentobs agents            # what is on this machine
 agentobs agents --import   # read from everything found
 ```
 
-**On "unverified":** only Claude Code's format has been checked against real
-transcripts. The other built-in sources were declared from published paths,
-and are labelled `[unverified]` until someone confirms them against a real
-file. A tool that claims support and then silently records nothing is worse
-than one that says what it cannot read — so if a source yields no usage,
+**On "verified" and "unverified":** a source is only marked verified once its
+field names come from the agent's own source or a real log file:
+
+- **Claude Code** — read directly from real transcripts.
+- **Codex CLI** — field names from the `TokenUsage` struct in
+  [`openai/codex`](https://github.com/openai/codex)
+  `codex-rs/protocol/src/protocol.rs`. Two envelope shapes exist across
+  versions and both are read.
+- **Gemini CLI** — field names from `MessageRecord` in
+  [`google-gemini/gemini-cli`](https://github.com/google-gemini/gemini-cli)
+  `packages/core/src/services/chatRecordingService.ts`.
+- **Copilot CLI** — still `unverified`, and honestly so: a real install was
+  checked and `~/.copilot` holds only `config.json` and plain-text server
+  logs. Copilot CLI reports usage through its own `/usage` command rather
+  than persisting it, so unless you have configured its OpenTelemetry file
+  exporter there is nothing on disk to import.
+- **OpenCode** — path confirmed, field names not.
+
+A tool that claims support and then silently records nothing is worse than one
+that says what it cannot read — so if a source yields no usage,
 `agents --import` says exactly that instead of reporting a confident zero.
 
 **Adding your own agent** takes no code. Drop a definition into

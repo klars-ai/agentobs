@@ -272,3 +272,24 @@ export function checkBudgets(db: DatabaseSync, opts: { record?: boolean } = {}):
 export function blockingBudget(statuses: BudgetStatus[]): BudgetStatus | null {
   return statuses.find((s) => s.exceeded && s.budget.action === 'block') ?? null;
 }
+
+/**
+ * Formats a budget figure in its own unit.
+ *
+ * toFixed(2) alone reported a $0.0001 limit as "$0.00", which reads as a bug
+ * rather than a very small limit - and a token budget rendered as dollars
+ * entirely. Small values keep enough decimals to stay recognisable.
+ *
+ * Shared rather than duplicated: the hook's block message, the desktop toast
+ * and the webhook payload all describe the same breach, and wording that
+ * disagrees between them is how a user stops trusting the numbers.
+ */
+export function budgetAmount(value: number, unit: 'usd' | 'tokens'): string {
+  if (unit === 'tokens') {
+    if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M tokens`;
+    if (value >= 1_000) return `${Math.round(value / 1_000)}K tokens`;
+    return `${Math.round(value)} tokens`;
+  }
+  if (value > 0 && value < 0.01) return `$${value.toPrecision(2)}`;
+  return `$${value.toFixed(2)}`;
+}

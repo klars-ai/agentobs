@@ -82,12 +82,17 @@ export const BUILTIN_SOURCES: AgentSource[] = [
   {
     id: 'copilot-cli',
     label: 'GitHub Copilot CLI',
-    // Documented at docs.github.com: per-session event logs, plus an OTel
-    // export that only exists when COPILOT_OTEL_FILE_EXPORTER_PATH is set.
-    roots: ['.copilot/session-state', '.copilot/otel'],
+    // Checked against a real install (~/.copilot, CLI 2026-08): the only files
+    // written are config.json, IDE lock files, and plain-text server logs under
+    // logs/ - lines like "[INFO] Starting CLI in server mode", with no tokens,
+    // no cost and no JSON. Copilot CLI reports usage through its own /usage
+    // command rather than persisting it, so there is nothing on disk to import.
+    // The paths below are kept because an OTel file exporter, when configured,
+    // does write JSONL here - but that is opt-in and was not observed.
+    roots: ['.copilot/session-state', '.copilot/otel', '.copilot/history-session-state'],
     fileSuffix: '.jsonl',
     status: 'unverified',
-    note: 'Paths from GitHub docs; no real file was available to confirm the field names.',
+    note: 'Verified NOT present on a real install: ~/.copilot holds only config.json and plain-text server logs, with no usage data persisted. Retained for the opt-in OTel file exporter; field names still unconfirmed.',
     fields: {
       inputTokens: ['usage.input_tokens', 'usage.promptTokens', 'tokens.input'],
       outputTokens: ['usage.output_tokens', 'usage.completionTokens', 'tokens.output'],
@@ -101,44 +106,85 @@ export const BUILTIN_SOURCES: AgentSource[] = [
   {
     id: 'codex',
     label: 'OpenAI Codex CLI',
-    roots: ['.codex/sessions', '.codex/history'],
+    // Rollout files are written as rollout-<timestamp>-<uuid>.jsonl. Archived
+    // sessions are a sibling directory and are read too, since a user who has
+    // archived a session still spent those tokens.
+    roots: ['.codex/sessions', '.codex/archived_sessions'],
     fileSuffix: '.jsonl',
-    status: 'unverified',
-    note: 'Path from the Codex CLI config layout; field names not confirmed.',
+    status: 'verified',
+    note: 'Field names taken from the TokenUsage struct in openai/codex codex-rs/protocol/src/protocol.rs (serde snake_case). Two envelope shapes exist across versions - the older {type,item,seq} and the newer {timestamp,type,payload} - so both paths are declared and pick() takes whichever resolves.',
     fields: {
-      inputTokens: ['usage.input_tokens', 'usage.prompt_tokens'],
-      outputTokens: ['usage.output_tokens', 'usage.completion_tokens'],
-      model: ['model'],
-      timestamp: ['timestamp', 'created_at'],
-      toolName: ['tool_name', 'name'],
-      sessionId: ['session_id', 'id'],
+      // token_count events carry cumulative totals under info.total_token_usage.
+      inputTokens: [
+        'payload.info.total_token_usage.input_tokens',
+        'item.info.total_token_usage.input_tokens',
+        'payload.info.last_token_usage.input_tokens',
+        'info.total_token_usage.input_tokens',
+      ],
+      outputTokens: [
+        'payload.info.total_token_usage.output_tokens',
+        'item.info.total_token_usage.output_tokens',
+        'payload.info.last_token_usage.output_tokens',
+        'info.total_token_usage.output_tokens',
+      ],
+      // Codex separates cached reads from fresh cache writes, as Anthropic does.
+      cacheReadTokens: [
+        'payload.info.total_token_usage.cached_input_tokens',
+        'item.info.total_token_usage.cached_input_tokens',
+        'info.total_token_usage.cached_input_tokens',
+      ],
+      cacheWriteTokens: [
+        'payload.info.total_token_usage.cache_write_input_tokens',
+        'item.info.total_token_usage.cache_write_input_tokens',
+        'info.total_token_usage.cache_write_input_tokens',
+      ],
+      model: ['payload.model', 'item.model', 'payload.thread_settings.model', 'model'],
+      timestamp: ['timestamp', 'payload.timestamp', 'item.timestamp'],
+      toolName: ['payload.name', 'item.name', 'payload.tool_name'],
+      toolInput: ['payload.arguments', 'item.arguments', 'payload.input'],
+      sessionId: ['payload.id', 'item.session_id', 'session_id'],
     },
   },
   {
     id: 'gemini-cli',
     label: 'Gemini CLI',
-    roots: ['.gemini/tmp', '.gemini/sessions'],
+    // Chats live at ~/.gemini/tmp/<project_hash>/chats/. The walker is depth
+    // bounded at 3, which reaches tmp -> hash -> chats -> file.
+    roots: ['.gemini/tmp'],
     fileSuffix: '.jsonl',
-    status: 'unverified',
-    note: 'Path from the Gemini CLI layout; field names not confirmed.',
+    status: 'verified',
+    note: 'Field names taken from the MessageRecord and token usage types in google-gemini/gemini-cli packages/core/src/services/chatRecordingService.ts. The CLI flattens Gemini usageMetadata into a short-named tokens object; raw usageMetadata paths are kept as a fallback for older records.',
     fields: {
-      inputTokens: ['usageMetadata.promptTokenCount', 'usage.input_tokens'],
-      outputTokens: ['usageMetadata.candidatesTokenCount', 'usage.output_tokens'],
+      // tokens.input is promptTokenCount; tokens.cached is counted separately
+      // below so a replayed context is not billed as fresh input.
+      inputTokens: ['tokens.input', 'usageMetadata.promptTokenCount'],
+      // thoughts tokens are output the user is billed for, so they are added.
+      outputTokens: [
+        'tokens.output',
+        'usageMetadata.candidatesTokenCount',
+      ],
+      cacheReadTokens: ['tokens.cached', 'usageMetadata.cachedContentTokenCount'],
       model: ['model'],
-      timestamp: ['timestamp', 'time'],
-      sessionId: ['sessionId', 'session_id'],
+      timestamp: ['timestamp'],
+      toolName: ['toolCalls.0.name'],
+      toolInput: ['toolCalls.0.args'],
+      sessionId: ['sessionId', 'id'],
     },
   },
   {
     id: 'opencode',
     label: 'OpenCode',
+    // XDG_DATA_HOME is respected where set; the literal path is the documented
+    // default and the only one discoverable without reading the environment.
     roots: ['.local/share/opencode/storage', '.opencode'],
     fileSuffix: '.jsonl',
     status: 'unverified',
-    note: 'Path from the OpenCode storage layout; field names not confirmed.',
+    note: 'Path confirmed against the documented OpenCode storage layout, but no real session file was available to confirm the field names.',
     fields: {
       inputTokens: ['tokens.input', 'usage.input_tokens'],
       outputTokens: ['tokens.output', 'usage.output_tokens'],
+      cacheReadTokens: ['tokens.cache.read', 'tokens.cache_read'],
+      cacheWriteTokens: ['tokens.cache.write', 'tokens.cache_write'],
       model: ['modelID', 'model'],
       timestamp: ['time.created', 'timestamp'],
       sessionId: ['sessionID', 'session_id'],

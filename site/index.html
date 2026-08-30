@@ -7,7 +7,7 @@
     <title>AgentObs — stop your AI agent before it overspends</title>
     <meta
       name="description"
-      content="The only Claude Code tool that can say no. Hard-block your agent at a spend limit, a token limit, or a dangerous command. Local-first, open source, no account required."
+      content="The Claude Code tool that enforces more than a dollar figure. Hard-block your agent on tokens, on a rolling rate-limit window, or on a dangerous command. Local-first, open source, no account required."
     />
     <link rel="canonical" href="https://agents.klars.ai/" />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
@@ -21,7 +21,7 @@
     <meta property="og:title" content="AgentObs — stop your AI agent before it overspends" />
     <meta
       property="og:description"
-      content="Every other agent tool is read-only. AgentObs sets a limit and enforces it before the call runs - on dollars, on tokens, or on dangerous commands."
+      content="Other tools cap a dollar figure, if they enforce at all. AgentObs enforces tokens, rolling rate-limit windows, dangerous commands and scoped approvals - before the call runs."
     />
     <meta property="og:image" content="https://agents.klars.ai/og.png" />
     <meta property="og:image:width" content="1200" />
@@ -35,7 +35,7 @@
     <meta name="twitter:title" content="AgentObs — stop your AI agent before it overspends" />
     <meta
       name="twitter:description"
-      content="Every other agent tool is read-only. AgentObs sets a limit and enforces it before the call runs - on dollars, on tokens, or on dangerous commands."
+      content="Other tools cap a dollar figure, if they enforce at all. AgentObs enforces tokens, rolling rate-limit windows, dangerous commands and scoped approvals - before the call runs."
     />
     <meta name="twitter:image" content="https://agents.klars.ai/og.png" />
 
@@ -106,7 +106,7 @@
       "name": "How is AgentObs different from ccusage?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "ccusage and similar tools are read-only: they parse local transcripts and report what you already spent. AgentObs asks for your limit, which lets it do two things a reporting tool cannot: block a tool call before it runs, and forecast how long until you hit the limit. Both require knowing the limit, not just the usage."
+        "text": "ccusage is read-only: it parses local transcripts and reports what you already spent. AgentObs asks for your limit, which lets it block a tool call before it runs and forecast how long until you hit the limit - both need the limit, not just the usage. A few tools do block, but on cumulative dollars only; AgentObs also enforces token budgets, rolling 5-hour windows, command policy and scoped approvals."
       }
     },
     {
@@ -174,9 +174,9 @@
         -->
         <h1>Stop your agent before <br class="desktop-break" />it overspends.</h1>
         <p class="lede">
-          Every other Claude Code tool is read-only — they tell you what happened after it
-          happened. AgentObs sets a limit and enforces it <em>before</em> the call runs:
-          on dollars, on tokens, or on dangerous commands.
+          Most Claude Code tools only report what you already spent, and the few that
+          enforce stop at a dollar figure. AgentObs enforces <em>before</em> the call runs —
+          on tokens, on a rolling rate-limit window, on dangerous commands.
         </p>
 
         <div class="install">
@@ -254,8 +254,8 @@ agentobs budget set --block5h 200000 --tokens</code></pre>
               <pre><code>agentobs forecast</code></pre>
               <p>
                 <em>“At $4.14/hour you hit the limit in 44 min.”</em> A forecast needs
-                the limit as well as the usage — which is why a read-only usage tool
-                cannot tell you this.
+                the limit as well as the usage — which is why a tool that only reports
+                usage cannot tell you this.
               </p>
             </div>
           </li>
@@ -312,6 +312,14 @@ agentobs budget set --block5h 200000 --tokens</code></pre>
             </p>
           </article>
           <article>
+            <h3>It can tell you where you are</h3>
+            <p>
+              <code>agentobs notify set &lt;url&gt;</code> sends a breach to Slack, Discord or
+              your own endpoint. Opt-in, no default destination, and the payload carries
+              numbers — never your tool inputs.
+            </p>
+          </article>
+          <article>
             <h3>Honest about what it knows</h3>
             <p>
               An unpriced model shows <code>—</code>, never <code>$0.00</code>. An
@@ -324,8 +332,9 @@ agentobs budget set --block5h 200000 --tokens</code></pre>
       <section class="section" id="compare">
         <h2>What makes it different</h2>
         <p class="section-lede">
-          The Claude Code tooling space is well served for reporting. It is empty for
-          control — every other tool tells you what already happened.
+          The tooling space is well served for reporting, and a couple of tools now block
+          on a dollar figure. Nothing else enforces the other four things that actually
+          stop a run going wrong.
         </p>
         <div class="table-wrap">
           <table class="compare">
@@ -333,28 +342,34 @@ agentobs budget set --block5h 200000 --tokens</code></pre>
               <tr>
                 <th scope="col">Capability</th>
                 <th scope="col">Cost trackers</th>
+                <th scope="col">Budget blockers</th>
                 <th scope="col">Security hooks</th>
                 <th scope="col">AgentObs</th>
               </tr>
             </thead>
             <tbody>
-              <tr><td>Cost &amp; token reporting</td><td class="y">Yes</td><td class="n">No</td><td class="y">Yes</td></tr>
-              <tr><td>Web dashboard</td><td class="n">No</td><td>Some</td><td class="y">Yes</td></tr>
-              <tr><td>Blocks dangerous commands</td><td class="n">No</td><td class="y">Yes</td><td class="y">Yes</td></tr>
-              <tr><td><strong>Blocks on a spend limit</strong></td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
-              <tr><td><strong>Blocks on your 5-hour window</strong></td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
-              <tr><td><strong>Forecasts when you'll run out</strong></td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
-              <tr><td>Status-bar integration</td><td>Some</td><td class="n">No</td><td class="y">Yes</td></tr>
-              <tr><td><strong>MCP server</strong></td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
-              <tr><td><strong>Desktop alerts on a limit</strong></td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
-              <tr><td>Secret redaction, unit-tested</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
+              <tr><td>Cost &amp; token reporting</td><td class="y">Yes</td><td class="y">Yes</td><td class="n">No</td><td class="y">Yes</td></tr>
+              <tr><td>Web dashboard</td><td class="n">No</td><td class="n">No</td><td>Some</td><td class="y">Yes</td></tr>
+              <tr><td>Blocks on a dollar limit</td><td class="n">No</td><td class="y">Yes</td><td class="n">No</td><td class="y">Yes</td></tr>
+              <tr><td>Blocks dangerous commands</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td><td class="y">Yes</td></tr>
+              <tr><td><strong>Blocks on a token budget</strong></td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
+              <tr><td><strong>Blocks on your 5-hour window</strong></td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
+              <tr><td><strong>Scoped approvals</strong></td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
+              <tr><td><strong>Forecasts when you'll run out</strong></td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
+              <tr><td>Status-bar integration</td><td>Some</td><td>Some</td><td class="n">No</td><td class="y">Yes</td></tr>
+              <tr><td><strong>MCP server</strong></td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
+              <tr><td><strong>Alerts to Slack or Discord</strong></td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
+              <tr><td>Secret redaction, unit-tested</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
             </tbody>
           </table>
         </div>
         <p class="section-lede" style="margin-top:20px">
           Only want cost reporting?
           <a href="https://github.com/ryoppippi/ccusage">ccusage</a> is excellent at it and
-          supports 16+ agents. AgentObs is for when you want to <em>stop</em> things.
+          supports 16+ agents. Only want a daily dollar cap?
+          <a href="https://www.npmjs.com/package/cost-guardian">cost-guardian</a> does that in
+          pure bash. AgentObs is for when a dollar figure is not the only thing you need to
+          stop.
         </p>
       </section>
 
@@ -456,8 +471,9 @@ agentobs budget set --block5h 200000 --tokens</code></pre>
             <p>
               ccusage is read-only, and good at it — it parses the same local transcripts and
               reports what you already spent. AgentObs asks for your limit, which is what makes
-              two further things possible: refusing a call before it runs, and forecasting how
-              long until you hit the limit. Both need the limit, not just the usage.
+              refusing a call and forecasting possible; both need the limit, not just the usage.
+              A couple of tools do block, but on cumulative dollars alone — AgentObs also
+              enforces token budgets, rolling 5-hour windows, command policy and approvals.
             </p>
           </details>
 

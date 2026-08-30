@@ -386,6 +386,46 @@ usage, which is why a read-only usage tool cannot tell you this.
       await policyTest(tool, input.join(' '));
     });
 
+  const notify = program
+    .command('notify')
+    .description('Send budget and approval alerts to Slack, Discord, or your own endpoint');
+
+  notify
+    .command('set')
+    .description('Add or update an alert destination')
+    .argument('<url>', 'https webhook URL (Slack and Discord both work as-is)')
+    .option('--format <format>', 'slack (default) or json for your own receiver')
+    .option('--events <list>', 'comma-separated: budget_exceeded,call_blocked,approval_requested')
+    .action(async (url: string, opts: { format?: string; events?: string }) => {
+      const { notifySet } = await import('./commands/notify.js');
+      await notifySet(url, opts);
+    });
+
+  notify
+    .command('list')
+    .description('Show configured destinations')
+    .action(async () => {
+      const { notifyList } = await import('./commands/notify.js');
+      await notifyList();
+    });
+
+  notify
+    .command('remove')
+    .description('Remove an alert destination')
+    .argument('<url>', 'the URL to remove')
+    .action(async (url: string) => {
+      const { notifyRemove } = await import('./commands/notify.js');
+      await notifyRemove(url);
+    });
+
+  notify
+    .command('test')
+    .description('Send a real test alert and report what came back')
+    .action(async () => {
+      const { notifyTest } = await import('./commands/notify.js');
+      await notifyTest();
+    });
+
   return program;
 }
 

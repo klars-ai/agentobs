@@ -1,9 +1,10 @@
 # AgentObs
 
-> A local-first observability and control layer for AI coding agents. Unlike
-> every other tool in this space, AgentObs can refuse a tool call: it enforces
-> spend limits, token limits and command policy *before* the call runs, rather
-> than reporting cost after it is already spent.
+> A local-first observability and control layer for AI coding agents. Most
+> tools in this space only report cost after it is spent, and the few that
+> enforce stop at a cumulative dollar figure. AgentObs refuses a tool call on
+> token budgets, rolling rate-limit windows, command policy and scoped
+> approvals - before the call runs.
 
 Install: `npm install -g @klars/agentobs` then `agentobs init`.
 Requires Node.js 22.5 or newer. Open source (MIT), no account, no telemetry.
@@ -11,11 +12,14 @@ Source: https://github.com/klars-ai/agentobs
 
 ## What problem it solves
 
-Agent tooling is almost entirely read-only. Tools like ccusage and
+Most agent tooling is read-only. Tools like ccusage and
 Claude-Code-Usage-Monitor parse the same local transcripts and tell you what
-you already spent. None of them can stop anything, because reporting on usage
-does not require knowing your limit. AgentObs asks for the limit, which is
-what makes both enforcement and forecasting possible.
+you already spent; they cannot stop anything, because reporting usage does not
+require knowing your limit. A small number of tools - cost-guardian, Septim
+Cost Guard - do block, but only on cumulative dollars. That leaves the cases
+that matter most unserved: a subscription user whose dollar cost is zero, a
+rolling rate-limit window, a destructive command, a call that should be held
+for approval. AgentObs asks for the limit and enforces all four.
 
 ## Core capabilities
 
@@ -45,19 +49,26 @@ what makes both enforcement and forecasting possible.
 - **Statusline.** A compact status-bar line showing the real 5-hour rate limit
   from Anthropic's own payload, the tightest budget, a countdown, and context
   usage.
-- **Multi-agent import.** Reads Claude Code, GitHub Copilot CLI, OpenAI Codex
-  CLI, Gemini CLI and OpenCode logs. Sources are declarative, so an unknown
-  agent can be added with a JSON definition and no code.
+- **Multi-agent import.** Reads Claude Code, OpenAI Codex CLI and Gemini CLI
+  with field names taken from those projects' own source, plus OpenCode and
+  Copilot CLI. Sources are declarative, so an unknown agent can be added with
+  a JSON definition and no code.
+- **Alerts.** `agentobs notify set <url>` sends a budget breach or an approval
+  request to Slack, Discord or a user-supplied endpoint. Opt-in with no
+  default destination; payloads carry budget names and numbers, never tool
+  inputs, and are redacted before sending.
 - **Dashboard.** A local web dashboard with light and dark themes.
 
 ## Honesty commitments
 
 These are design rules, not marketing:
 
-- Only Claude Code's log format is marked `verified`; the others were written
-  from documentation and are labelled `unverified`, because claiming support
-  that silently records nothing is the worst failure an observability tool can
-  have.
+- A source is marked `verified` only when its field names come from the
+  agent's own source or a real log file - Claude Code, Codex CLI and Gemini
+  CLI qualify. OpenCode and Copilot CLI remain `unverified` and say so.
+  Copilot CLI is a deliberate example: a real install was checked and it
+  persists no usage data at all, so claiming support would mean silently
+  recording nothing.
 - An unpriced model renders as `-`, never `$0.00`. Unknown is not zero.
 - Cache reads are billed at 0.1x and counted separately from fresh input,
   because summing them inflates totals by orders of magnitude.
@@ -65,7 +76,12 @@ These are design rules, not marketing:
 ## Privacy
 
 Everything is local: a SQLite database under `~/.agentobs`. No account, no
-API key, no telemetry, no network calls. Secrets are redacted before storage.
+API key, no telemetry. Secrets are redacted before storage.
+
+The single exception is outbound alerts, and it is opt-in: nothing is sent
+until the user writes a destination into `~/.agentobs/notify.json`, there is
+no default endpoint or vendor, and plain http to a remote host is refused so
+a webhook secret cannot travel in clear text.
 
 ## Links
 

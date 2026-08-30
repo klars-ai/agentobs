@@ -36,25 +36,19 @@ import {
   startSession,
 } from '../core/repo.js';
 import { contextFromToolInput, evaluate, loadPolicy } from '../core/policy-engine.js';
-import { blockingBudget, checkBudgets, type BudgetStatus } from '../core/budget.js';
+import {
+  blockingBudget,
+  budgetAmount,
+  checkBudgets,
+  type BudgetStatus,
+} from '../core/budget.js';
 
-/**
- * Renders a budget amount in its own unit.
- *
- * toFixed(2) alone reported a $0.0001 limit as "$0.00", which reads as a bug
- * rather than a very small limit - and a token budget rendered as dollars
- * entirely. Small values keep enough decimals to stay recognisable.
- */
-function budgetAmount(value: number, unit: BudgetStatus['unit']): string {
-  if (unit === 'tokens') {
-    if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M tokens`;
-    if (value >= 1_000) return `${Math.round(value / 1_000)}K tokens`;
-    return `${Math.round(value)} tokens`;
-  }
-  if (value > 0 && value < 0.01) return `$${value.toPrecision(2)}`;
-  return `$${value.toFixed(2)}`;
-}
 import { notify } from '../core/notify.js';
+import {
+  budgetExceededEvent,
+  drainWebhooks,
+  sendWebhookInBackground,
+} from '../core/webhook.js';
 import { checkApproval, requestApproval } from '../core/approvals.js';
 import { attachTranscriptUsage } from './transcript.js';
 
@@ -167,6 +161,20 @@ export function handleHook(payload: HookPayload): HookResult {
                 (b.budget.action === 'block' ? ' - tool calls are now blocked.' : '.'),
               urgent: b.budget.action === 'block',
             });
+            // Reaches whoever is not at this desk. Silent unless the user has
+            // written a destination into ~/.agentobs/notify.json themselves.
+            sendWebhookInBackground(
+              budgetExceededEvent({
+                // Budgets have no user-given name; scope is what tells two
+                // budgets of the same period apart.
+                name: b.budget.scope ?? b.budget.period,
+                period: b.budget.period,
+                spent: b.spent,
+                limit: b.limit,
+                unit: b.unit,
+                action: b.budget.action,
+              }),
+            );
           }
         }
 
@@ -282,6 +290,18 @@ export function handleHook(payload: HookPayload): HookResult {
             body: `${toolName} is waiting on you. Run: agentobs approve ${req.id.slice(0, 8)}`,
             urgent: true,
           });
+          // The tool name and rule are safe to send; the tool input is not, so
+          // it is deliberately absent from this payload.
+          sendWebhookInBackground({
+            kind: 'approval_requested',
+            title: `AgentObs: ${toolName} is waiting for approval`,
+            detail: `Run: agentobs approve ${req.id.slice(0, 8)}`,
+            data: {
+              tool: toolName,
+              approval_id: req.id.slice(0, 8),
+              rule: verdict.rule?.name ?? null,
+            },
+          });
         }
 
         const reason =
@@ -383,6 +403,17 @@ export async function main(): Promise<void> {
     debugLog(`hook error: ${String(err)}`);
     result = { exitCode: 0 };
   }
+  // Write the decision first: the agent is unblocked the moment this lands,
+  // so draining below costs it nothing.
   if (result.stdout) process.stdout.write(result.stdout);
+
+  // Then give any alert a bounded chance to leave. process.exit destroys open
+  // sockets, so without this a webhook fired microseconds ago never sends.
+  try {
+    await drainWebhooks();
+  } catch {
+    /* an alert must never change the outcome of a hook */
+  }
+
   process.exit(result.exitCode);
 }
