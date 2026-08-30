@@ -144,7 +144,7 @@ export function createDashboardServer(opts: ServerOptions) {
             cost_caveat: costCaveat(),
             cost_label: costLabel(),
           });
-          break;
+          return;
 
         case '/api/timeline':
           json(res, getTimeline(db, range));
