@@ -23,6 +23,9 @@ CREATE TABLE IF NOT EXISTS sessions (
   --   "coarse" - session duration/exit code only (process-wrap)
   fidelity          TEXT NOT NULL DEFAULT 'rich',
   exit_code         INTEGER,
+  -- Model the session ran on. Transcript imports report usage per assistant
+  -- message rather than per tool call, so the model lands here, not on the row.
+  model_hint        TEXT,
   -- Cloud-sync columns. Present from the start so the local schema never
   -- needs a breaking migration when sync ships; null until logged in.
   device_id         TEXT,

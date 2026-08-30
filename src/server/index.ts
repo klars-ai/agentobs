@@ -22,6 +22,7 @@ import { openDb } from '../core/db.js';
 import {
   getPolicyDecisions,
   getRecentToolCalls,
+  getModels,
   getProjects,
   getSessionDetail,
   getSessions,
@@ -146,6 +147,9 @@ export function createDashboardServer(opts: ServerOptions) {
               limit: Number(url.searchParams.get('limit') ?? 50),
             }),
           });
+          return;
+        case '/api/models':
+          json(res, { models: getModels(db, range) });
           return;
         case '/api/projects':
           json(res, { projects: getProjects(db, range) });

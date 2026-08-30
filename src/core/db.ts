@@ -49,7 +49,11 @@ export function openDb(file?: string): DatabaseSync {
   db.exec('PRAGMA foreign_keys = ON');
   db.exec('PRAGMA busy_timeout = 5000');
 
+  // Migrate first: schema.sql creates partial indexes over columns like
+  // synced_at, and CREATE INDEX fails outright if an older table lacks them.
+  migrate(db);
   db.exec(schemaSql());
+  migrate(db);
   ensureDeviceId(db);
 
   cached = db;
@@ -61,6 +65,60 @@ export function closeDb(): void {
   if (cached) {
     cached.close();
     cached = null;
+  }
+}
+
+/**
+ * Additive column migrations.
+ *
+ * schema.sql uses CREATE TABLE IF NOT EXISTS, which is right for a fresh
+ * install but silently does nothing to an existing database - so a column
+ * added in a later release never appears, and every query touching it fails
+ * with "no such column" on upgrade. That is a broken upgrade for every
+ * existing user, so new columns must be added here as well as in schema.sql.
+ *
+ * Each entry is idempotent: the column list is read first, and anything
+ * already present is skipped.
+ */
+function migrate(db: DatabaseSync): void {
+  const additions: Array<{ table: string; column: string; definition: string }> = [
+    // sessions - every column added after the first release. The sync
+    // columns are here too because schema.sql creates partial indexes over
+    // them, and CREATE INDEX fails outright on a table that lacks them.
+    { table: 'sessions', column: 'git_branch', definition: 'TEXT' },
+    { table: 'sessions', column: 'blocked_count', definition: 'INTEGER NOT NULL DEFAULT 0' },
+    { table: 'sessions', column: 'fidelity', definition: "TEXT NOT NULL DEFAULT 'rich'" },
+    { table: 'sessions', column: 'exit_code', definition: 'INTEGER' },
+    { table: 'sessions', column: 'model_hint', definition: 'TEXT' },
+    { table: 'sessions', column: 'cwd', definition: 'TEXT' },
+    { table: 'sessions', column: 'total_tokens_in', definition: 'INTEGER NOT NULL DEFAULT 0' },
+    { table: 'sessions', column: 'total_tokens_out', definition: 'INTEGER NOT NULL DEFAULT 0' },
+    { table: 'sessions', column: 'total_cost_usd', definition: 'REAL' },
+    { table: 'sessions', column: 'tool_call_count', definition: 'INTEGER NOT NULL DEFAULT 0' },
+    { table: 'sessions', column: 'error_count', definition: 'INTEGER NOT NULL DEFAULT 0' },
+    { table: 'sessions', column: 'device_id', definition: 'TEXT' },
+    { table: 'sessions', column: 'account_id', definition: 'TEXT' },
+    { table: 'sessions', column: 'ended_at', definition: 'TEXT' },
+    { table: 'sessions', column: 'synced_at', definition: 'TEXT' },
+
+    { table: 'tool_calls', column: 'model', definition: 'TEXT' },
+    { table: 'tool_calls', column: 'ended_at', definition: 'TEXT' },
+    { table: 'tool_calls', column: 'synced_at', definition: 'TEXT' },
+
+    { table: 'budgets', column: 'limit_tokens', definition: 'INTEGER' },
+    { table: 'policy_decisions', column: 'synced_at', definition: 'TEXT' },
+  ];
+
+  for (const { table, column, definition } of additions) {
+    try {
+      const columns = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+      if (columns.length === 0) continue; // table not created yet
+      if (columns.some((c) => c.name === column)) continue;
+      db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+    } catch {
+      // A migration must never stop the tool from opening. A missing column
+      // degrades one feature; a throw here would break every command.
+    }
   }
 }
 

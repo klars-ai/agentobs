@@ -489,3 +489,71 @@ export function getSessionDetail(db: DatabaseSync, sessionId: string): SessionDe
 
   return { session, calls };
 }
+
+export interface ModelRow {
+  model: string;
+  calls: number;
+  tokens: number;
+  cost_usd: number | null;
+}
+
+/**
+ * Spend grouped by model - "which model is actually costing me".
+ *
+ * Falls back to session-level tokens when the per-call columns are null,
+ * which is the case for transcript imports (usage is reported per assistant
+ * message, not per tool call).
+ */
+export function getModels(db: DatabaseSync, range: Range): ModelRow[] {
+  const since = rangeStart(range);
+  const args = since ? [since, since] : [];
+  const callWhere = since ? 'WHERE started_at >= ? AND model IS NOT NULL' : 'WHERE model IS NOT NULL';
+  const sessWhere = since
+    ? 'WHERE s.started_at >= ? AND tc.id IS NULL'
+    : 'WHERE tc.id IS NULL';
+
+  // Per-call rows carry a model for hook/JSONL data. Transcript imports leave
+  // it null there and record it on the session instead, so a call-only query
+  // returned nothing at all for imported history - the common case.
+  const rows = db
+    .prepare(
+      `SELECT model,
+              COUNT(*) AS calls,
+              COALESCE(SUM(COALESCE(tokens_in,0) + COALESCE(tokens_out,0)), 0) AS tokens,
+              SUM(cost_usd) AS cost_usd
+         FROM tool_calls ${callWhere}
+        GROUP BY model`,
+    )
+    .all(...(since ? [since] : [])) as unknown as ModelRow[];
+
+  // Sessions whose calls have no model of their own.
+  const sessionRows = db
+    .prepare(
+      `SELECT COALESCE(s.model_hint, 'unknown') AS model,
+              COUNT(DISTINCT s.id) AS calls,
+              COALESCE(SUM(s.total_tokens_in + s.total_tokens_out), 0) AS tokens,
+              SUM(s.total_cost_usd) AS cost_usd
+         FROM sessions s
+         LEFT JOIN tool_calls tc ON tc.session_id = s.id AND tc.model IS NOT NULL
+         ${sessWhere}
+        GROUP BY COALESCE(s.model_hint, 'unknown')`,
+    )
+    .all(...(since ? [since] : [])) as unknown as ModelRow[];
+
+  const merged = new Map<string, ModelRow>();
+  for (const r of [...rows, ...sessionRows]) {
+    if (!r.model) continue;
+    const existing = merged.get(r.model);
+    if (existing) {
+      existing.calls += r.calls;
+      existing.tokens += r.tokens;
+      if (r.cost_usd !== null) existing.cost_usd = (existing.cost_usd ?? 0) + r.cost_usd;
+    } else {
+      merged.set(r.model, { ...r });
+    }
+  }
+
+  return [...merged.values()].sort(
+    (a, b) => (b.cost_usd ?? -1) - (a.cost_usd ?? -1) || b.tokens - a.tokens,
+  );
+}

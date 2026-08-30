@@ -1064,3 +1064,207 @@ tbody td:first-child {
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+
+/* ---------- tabs ---------- */
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: fit-content;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.tabs button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 550;
+  padding: 7px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tabs button:hover {
+  color: var(--text-primary);
+}
+
+.tabs button[aria-selected='true'] {
+  background: var(--surface);
+  color: var(--text-primary);
+  font-weight: 620;
+  box-shadow: 0 1px 2px rgba(11, 11, 11, 0.1);
+}
+
+.tabbed[hidden] {
+  display: none !important;
+}
+
+/* ---------- budget meters ---------- */
+
+.meters {
+  padding: 18px;
+  display: grid;
+  gap: 22px;
+}
+
+.meter-row {
+  display: grid;
+  gap: 8px;
+}
+
+.meter-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.meter-label {
+  font-size: 13px;
+  font-weight: 620;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.meter-value {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The track is a lighter step of the fill's own ramp, so the state reads
+   across the whole bar rather than only in the filled part. */
+.meter-track {
+  height: 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--series-1) 14%, transparent);
+  overflow: hidden;
+}
+
+.meter-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--series-1);
+  transition: width 0.3s ease;
+}
+
+/* Severity climbs with the ratio: accent -> warning -> danger. */
+.meter-row[data-level='warn'] .meter-track {
+  background: color-mix(in srgb, var(--status-warning) 18%, transparent);
+}
+.meter-row[data-level='warn'] .meter-fill {
+  background: var(--status-warning);
+}
+.meter-row[data-level='over'] .meter-track {
+  background: color-mix(in srgb, var(--status-critical) 16%, transparent);
+}
+.meter-row[data-level='over'] .meter-fill {
+  background: var(--status-critical);
+}
+
+.meter-note {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.meter-note strong {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+/* ---------- ranked breakdown bars ---------- */
+
+.breakdown-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px;
+  padding: 18px;
+}
+
+@media (max-width: 980px) {
+  .breakdown-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.breakdown-title {
+  margin: 0 0 14px;
+  font-size: 12px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.ranked {
+  display: grid;
+  gap: 13px;
+}
+
+.rank-row {
+  display: grid;
+  gap: 5px;
+}
+
+.rank-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.rank-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 520;
+}
+
+.rank-value {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.rank-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--grid);
+  overflow: hidden;
+}
+
+.rank-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--series-1);
+}
+
+/* A share of a single total is one quantity, so it stays one hue rather than
+   becoming a categorical palette - the rank carries the ordering, not colour. */
+.rank-row:nth-child(2) .rank-fill { opacity: 0.85; }
+.rank-row:nth-child(3) .rank-fill { opacity: 0.72; }
+.rank-row:nth-child(4) .rank-fill { opacity: 0.6; }
+.rank-row:nth-child(5) .rank-fill { opacity: 0.5; }
+.rank-row:nth-child(n + 6) .rank-fill { opacity: 0.42; }
+
+.rank-sub {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.ranked .empty {
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 8px 0;
+}

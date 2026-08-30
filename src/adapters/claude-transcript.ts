@@ -257,12 +257,14 @@ export async function importTranscript(
   db.prepare(
     `UPDATE sessions
         SET total_tokens_in = ?, total_tokens_out = ?, total_cost_usd = ?,
+            model_hint = COALESCE(?, model_hint),
             ended_at = COALESCE(?, ended_at), updated_at = ?, synced_at = NULL
       WHERE id = ?`,
   ).run(
     result.tokensIn,
     result.tokensOut,
     result.cost,
+    result.model,
     result.endedAt,
     new Date().toISOString(),
     file.sessionId,

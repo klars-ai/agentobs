@@ -34,8 +34,15 @@
     </header>
 
     <main id="main">
+
+      <nav class="tabs" role="tablist" aria-label="Views">
+        <button type="button" role="tab" data-tab="overview" aria-selected="true">Overview</button>
+        <button type="button" role="tab" data-tab="breakdown" aria-selected="false">Breakdown</button>
+        <button type="button" role="tab" data-tab="budgets" aria-selected="false">Budgets</button>
+        <button type="button" role="tab" data-tab="activity" aria-selected="false">Activity</button>
+      </nav>
       <!-- Hero: exactly one per view - the number this dashboard exists to report. -->
-      <section class="hero" aria-labelledby="hero-label">
+      <section class="hero tabbed" data-panel="overview" aria-labelledby="hero-label">
         <div>
           <p class="hero-label" id="hero-label">Spend <span data-range-label>this week</span></p>
           <p class="hero-figure" id="hero-cost">—</p>
@@ -49,7 +56,7 @@
         </dl>
       </section>
 
-      <section class="tiles" aria-label="Key metrics">
+      <section class="tiles tabbed" data-panel="overview" aria-label="Key metrics">
         <article class="tile" data-accent="calls">
           <div class="tile-head">
             <p class="tile-label"><svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 13V7m4 6V3m4 10V6m4 7V9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg>Tool calls</p>
@@ -87,7 +94,40 @@
         </article>
       </section>
 
-      <section class="panel" aria-labelledby="timeline-title">
+
+      <section class="panel tabbed" data-panel="budgets" hidden aria-labelledby="budgets-title">
+        <div class="panel-head">
+          <div>
+            <h2 id="budgets-title"><svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5v13M4.5 4.5h5.2a2.1 2.1 0 0 1 0 4.2H5.8a2.1 2.1 0 0 0 0 4.2h5.7" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>Budgets</h2>
+            <p class="panel-sub">Spend and usage against the limits you set, with a burn-rate forecast.</p>
+          </div>
+        </div>
+        <div id="budgets-body" class="meters"></div>
+      </section>
+
+      <section class="panel tabbed" data-panel="breakdown" hidden aria-labelledby="breakdown-title">
+        <div class="panel-head">
+          <div>
+            <h2 id="breakdown-title"><svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h9M2 8h12M2 12h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Where it goes</h2>
+            <p class="panel-sub">Ranked by cost. Hover a bar for the exact figure.</p>
+          </div>
+        </div>
+        <div class="breakdown-grid">
+          <div class="breakdown-col">
+            <h3 class="breakdown-title">By project</h3>
+            <div id="bd-projects" class="ranked"></div>
+          </div>
+          <div class="breakdown-col">
+            <h3 class="breakdown-title">By model</h3>
+            <div id="bd-models" class="ranked"></div>
+          </div>
+          <div class="breakdown-col">
+            <h3 class="breakdown-title">By tool</h3>
+            <div id="bd-tools" class="ranked"></div>
+          </div>
+        </div>
+      </section>
+      <section class="panel tabbed" data-panel="overview" aria-labelledby="timeline-title">
         <div class="panel-head">
           <div>
             <h2 id="timeline-title"><svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 11.5 5.5 7l3 2.5L14.5 4" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="14.5" cy="4" r="1.6" fill="currentColor"/></svg>Activity over time</h2>
@@ -118,7 +158,7 @@
         </div>
       </section>
 
-      <div class="split">
+      <div class="split tabbed" data-panel="overview">
         <section class="panel" aria-labelledby="tools-title">
           <div class="panel-head">
             <div>
@@ -169,7 +209,7 @@
         </section>
       </div>
 
-      <section class="panel" aria-labelledby="activity-title">
+      <section class="panel tabbed" data-panel="activity" hidden aria-labelledby="activity-title">
         <div class="panel-head">
           <div>
             <h2 id="activity-title"><svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 8h3l1.6-4 2.4 8 1.7-4h4.3" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Recent activity</h2>

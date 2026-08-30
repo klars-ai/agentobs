@@ -98,13 +98,17 @@ function setConnection(ok, message) {
 
 async function refresh() {
   try {
-    const [summary, timeline, tools, calls, sessions] = await Promise.all([
-      fetchJson('/api/summary'),
-      fetchJson('/api/timeline'),
-      fetchJson('/api/tools-breakdown'),
-      fetchJson(`/api/tool-calls${state.status ? `?status=${state.status}` : ''}`),
-      fetchJson('/api/sessions'),
-    ]);
+    const [summary, timeline, tools, calls, sessions, projects, models, budgets] =
+      await Promise.all([
+        fetchJson('/api/summary'),
+        fetchJson('/api/timeline'),
+        fetchJson('/api/tools-breakdown'),
+        fetchJson(`/api/tool-calls${state.status ? `?status=${state.status}` : ''}`),
+        fetchJson('/api/sessions'),
+        fetchJson('/api/projects'),
+        fetchJson('/api/models'),
+        fetchJson('/api/budgets'),
+      ]);
 
     state.summary = summary;
     renderSummary(summary);
@@ -114,6 +118,35 @@ async function refresh() {
     renderTools(tools);
     renderActivity(calls.calls ?? []);
     renderSessions(sessions.sessions ?? []);
+
+    renderBudgets(budgets.budgets ?? []);
+    renderRanked('bd-projects', projects.projects ?? [], {
+      name: (r) => tildePath(r.project),
+      value: (r) => r.cost_usd,
+      sub: (r) => `${count(r.tool_calls)} calls · ${count(r.sessions)} sessions`,
+      format: money,
+    });
+    renderRanked('bd-models', models.models ?? [], {
+      name: (r) => r.model,
+      value: (r) => r.cost_usd,
+      sub: (r) => `${count(r.calls)} calls · ${count(r.tokens)} tokens`,
+      format: money,
+    });
+    renderRanked('bd-tools', tools ?? [], {
+      name: (r) => r.tool_name,
+      value: (r) => r.cost_usd ?? r.calls,
+      sub: (r) => `${count(r.calls)} calls · ${count(r.errors)} errors`,
+      format: (v) => (v < 1 ? money(v) : count(v)),
+    });
+
+    // A budget in trouble is the one thing worth pulling the user's eye to,
+    // so the tab carries a marker rather than waiting to be clicked.
+    const alerting = (budgets.budgets ?? []).some((b) => b.exceeded || b.ratio >= 0.75);
+    const budgetTab = document.querySelector('.tabs button[data-tab="budgets"]');
+    if (budgetTab) {
+      budgetTab.textContent = alerting ? 'Budgets !' : 'Budgets';
+    }
+
     setConnection(true, `Live · updated ${new Date().toLocaleTimeString()}`);
   } catch (err) {
     setConnection(false, `Disconnected: ${err.message}`);
@@ -698,7 +731,7 @@ async function openSession(sessionId) {
 
     document.getElementById('drawer-title').textContent = s.agent_name;
     document.getElementById('drawer-sub').textContent =
-      `${s.cwd ?? 'unknown directory'} · started ${relativeTime(s.started_at)}` +
+      `${tildePath(s.cwd) ?? 'unknown directory'} · started ${relativeTime(s.started_at)}` +
       (s.fidelity === 'coarse' ? ' · coarse (no per-call detail)' : '');
 
     const stats = document.getElementById('drawer-stats');
@@ -791,7 +824,201 @@ document.getElementById('activity-body').addEventListener('click', (e) => {
 
 // Deep link support: ?session=<id> opens that session on load, so a specific
 // session can be linked to directly rather than hunted for in the table.
+const initialTab = new URLSearchParams(window.location.search).get('tab');
+if (initialTab) setTimeout(() => showTab(initialTab), 200);
+
 const deepLink = new URLSearchParams(window.location.search).get('session');
 if (deepLink) {
   setTimeout(() => openSession(deepLink), 300);
+}
+
+/* ---------- tabs ---------- */
+
+function showTab(name) {
+  for (const btn of document.querySelectorAll('.tabs button')) {
+    btn.setAttribute('aria-selected', String(btn.dataset.tab === name));
+  }
+  for (const panel of document.querySelectorAll('.tabbed')) {
+    panel.hidden = panel.dataset.panel !== name;
+  }
+  state.tab = name;
+  // Canvases do not lay out while hidden, so anything just revealed has to
+  // be repainted at its real size.
+  if (name === 'overview') {
+    drawTimeline();
+    drawAllSparks();
+  }
+}
+
+for (const btn of document.querySelectorAll('.tabs button')) {
+  btn.addEventListener('click', () => showTab(btn.dataset.tab));
+}
+
+/* ---------- budget meters ---------- */
+
+/** Formats a value in its budget's own unit. */
+function unitValue(value, unit) {
+  if (unit === 'tokens') {
+    if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+    if (value >= 1_000) return `${Math.round(value / 1_000)}K`;
+    return String(Math.round(value));
+  }
+  return money(value);
+}
+
+function renderBudgets(rows) {
+  const body = document.getElementById('budgets-body');
+  if (!body) return;
+  body.replaceChildren();
+
+  if (rows.length === 0) {
+    const p = document.createElement('p');
+    p.className = 'meter-note';
+    p.textContent =
+      'No budgets set. Add one from the terminal: agentobs budget set --daily 5';
+    body.append(p);
+    return;
+  }
+
+  for (const b of rows) {
+    const row = document.createElement('div');
+    row.className = 'meter-row';
+    // Severity, not just progress: a bar at 92% should not look like one at 40%.
+    row.dataset.level = b.exceeded ? 'over' : b.ratio >= 0.75 ? 'warn' : 'ok';
+
+    const head = document.createElement('div');
+    head.className = 'meter-head';
+    const label = document.createElement('span');
+    label.className = 'meter-label';
+    label.textContent = b.budget.period + (b.budget.scope ? ` · ${tildePath(b.budget.scope)}` : '');
+    const value = document.createElement('span');
+    value.className = 'meter-value';
+    value.textContent = `${unitValue(b.spent, b.unit)} of ${unitValue(b.limit, b.unit)} · ${Math.round(b.ratio * 100)}%`;
+    head.append(label, value);
+
+    const track = document.createElement('div');
+    track.className = 'meter-track';
+    const fill = document.createElement('div');
+    fill.className = 'meter-fill';
+    fill.style.width = `${Math.min(100, b.ratio * 100)}%`;
+    track.append(fill);
+
+    const note = document.createElement('p');
+    note.className = 'meter-note';
+    const f = b.forecast;
+    if (b.exceeded) {
+      note.textContent =
+        b.budget.action === 'block'
+          ? 'Limit reached — tool calls are being blocked.'
+          : 'Limit reached.';
+    } else if (f && f.minutesToLimit !== null && f.willExceed) {
+      // The line no read-only tool can produce.
+      note.innerHTML = '';
+      const strong = document.createElement('strong');
+      strong.textContent = humanMinutes(f.minutesToLimit);
+      note.append(
+        document.createTextNode('At the current rate you hit this limit in '),
+        strong,
+        document.createTextNode(
+          ` — ${humanMinutes(f.minutesRemaining)} before the period resets.`,
+        ),
+      );
+    } else if (f && f.confidence === 'none') {
+      note.textContent = f.note ?? 'Not enough activity to forecast yet.';
+    } else if (f) {
+      note.textContent = `On track to finish the period around ${unitValue(f.projectedTotal, b.unit)}.`;
+    }
+
+    row.append(head, track, note);
+    body.append(row);
+  }
+}
+
+/** Mirrors the CLI's humanDuration so both surfaces read the same. */
+function humanMinutes(minutes) {
+  if (!Number.isFinite(minutes) || minutes < 0) return '—';
+  if (minutes < 1) return 'under a minute';
+  if (minutes < 90) return `${Math.round(minutes)} min`;
+  const hours = minutes / 60;
+  if (hours < 36) {
+    const h = Math.floor(hours);
+    const m = Math.round(minutes - h * 60);
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  }
+  return `${Math.round(hours / 24)} days`;
+}
+
+/* ---------- ranked breakdown bars ---------- */
+
+/**
+ * Ranked horizontal bars: the right form for "where does it go", because the
+ * reader is comparing magnitudes against a shared total, and a label beside
+ * each bar beats a legend.
+ */
+/**
+ * Shortens a home directory to ~, so a screenshot or shared dashboard does
+ * not carry the viewer's OS username.
+ */
+function tildePath(p) {
+  if (typeof p !== 'string') return p;
+  // Both separators: on Windows the home path arrives as C:\Users\name, and a
+  // forward-slash-only pattern silently leaves the username on screen.
+  const SEP = '[\\\\/]';
+  return p.replace(
+    new RegExp(`^([A-Za-z]:${SEP}Users${SEP}|${SEP}home${SEP}|${SEP}Users${SEP})[^\\\\/]+`, 'i'),
+    '~',
+  );
+}
+
+function renderRanked(elementId, rows, { name, value, sub, format }) {
+  const host = document.getElementById(elementId);
+  if (!host) return;
+  host.replaceChildren();
+
+  if (rows.length === 0) {
+    const p = document.createElement('p');
+    p.className = 'empty';
+    p.textContent = 'Nothing recorded in this range.';
+    host.append(p);
+    return;
+  }
+
+  const max = Math.max(...rows.map((r) => value(r) ?? 0), 0);
+
+  for (const row of rows.slice(0, 8)) {
+    const raw = value(row);
+    const v = raw ?? 0;
+    const unknown = raw === null || raw === undefined;
+    const wrap = document.createElement('div');
+    wrap.className = 'rank-row';
+
+    const head = document.createElement('div');
+    head.className = 'rank-head';
+    const nameEl = document.createElement('span');
+    nameEl.className = 'rank-name';
+    nameEl.textContent = name(row);
+    nameEl.title = name(row);
+    const valEl = document.createElement('span');
+    valEl.className = 'rank-value';
+    // Unknown is not zero. Showing $0.00 for a call whose model has no price
+    // is exactly the fabrication this product refuses elsewhere.
+    valEl.textContent = unknown ? '—' : format(v);
+    head.append(nameEl, valEl);
+
+    const track = document.createElement('div');
+    track.className = 'rank-track';
+    const fill = document.createElement('div');
+    fill.className = 'rank-fill';
+    fill.style.width = `${!unknown && max > 0 ? (v / max) * 100 : 0}%`;
+    track.append(fill);
+
+    wrap.append(head, track);
+    if (sub) {
+      const subEl = document.createElement('p');
+      subEl.className = 'rank-sub';
+      subEl.textContent = sub(row);
+      wrap.append(subEl);
+    }
+    host.append(wrap);
+  }
 }
