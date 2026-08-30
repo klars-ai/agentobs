@@ -53,7 +53,15 @@ function readStdin(): Promise<string> {
   });
 }
 
-const money = (v: number): string => (v < 0.01 ? `$${v.toFixed(3)}` : `$${v.toFixed(2)}`);
+/**
+ * toFixed alone renders a very small limit as "$0.000", which reads as a bug
+ * rather than a small number. toPrecision keeps it recognisable.
+ */
+const money = (v: number): string => {
+  if (v === 0) return '$0';
+  if (v < 0.01) return `$${Number(v.toPrecision(2))}`;
+  return `$${v.toFixed(2)}`;
+};
 
 function compact(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;

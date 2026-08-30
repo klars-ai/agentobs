@@ -36,7 +36,24 @@ import {
   startSession,
 } from '../core/repo.js';
 import { contextFromToolInput, evaluate, loadPolicy } from '../core/policy-engine.js';
-import { blockingBudget, checkBudgets } from '../core/budget.js';
+import { blockingBudget, checkBudgets, type BudgetStatus } from '../core/budget.js';
+
+/**
+ * Renders a budget amount in its own unit.
+ *
+ * toFixed(2) alone reported a $0.0001 limit as "$0.00", which reads as a bug
+ * rather than a very small limit - and a token budget rendered as dollars
+ * entirely. Small values keep enough decimals to stay recognisable.
+ */
+function budgetAmount(value: number, unit: BudgetStatus['unit']): string {
+  if (unit === 'tokens') {
+    if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M tokens`;
+    if (value >= 1_000) return `${Math.round(value / 1_000)}K tokens`;
+    return `${Math.round(value)} tokens`;
+  }
+  if (value > 0 && value < 0.01) return `$${value.toPrecision(2)}`;
+  return `$${value.toFixed(2)}`;
+}
 import { notify } from '../core/notify.js';
 import { checkApproval, requestApproval } from '../core/approvals.js';
 import { attachTranscriptUsage } from './transcript.js';
@@ -143,11 +160,10 @@ export function handleHook(payload: HookPayload): HookResult {
         // period, so this cannot turn into a notification per tool call.
         for (const b of budgets) {
           if (b.newlyExceeded) {
-            const unit = b.unit === 'tokens' ? 'tokens' : 'USD';
             notify({
               title: `AgentObs: ${b.budget.period} limit reached`,
               body:
-                `${b.spent.toFixed(b.unit === 'tokens' ? 0 : 2)} of ${b.limit} ${unit} used` +
+                `${budgetAmount(b.spent, b.unit)} of ${budgetAmount(b.limit, b.unit)} used` +
                 (b.budget.action === 'block' ? ' - tool calls are now blocked.' : '.'),
               urgent: b.budget.action === 'block',
             });
@@ -169,7 +185,7 @@ export function handleHook(payload: HookPayload): HookResult {
             toolName,
             ruleMatched: `budget:${overspent.budget.period}`,
             decision: 'block',
-            reason: `spend $${overspent.spent.toFixed(2)} exceeds the $${overspent.limit.toFixed(2)} ${overspent.budget.period} limit`,
+            reason: `spend ${budgetAmount(overspent.spent, overspent.unit)} exceeds the ${budgetAmount(overspent.limit, overspent.unit)} ${overspent.budget.period} limit`,
           });
           return {
             stdout: JSON.stringify({
@@ -177,8 +193,8 @@ export function handleHook(payload: HookPayload): HookResult {
                 hookEventName: 'PreToolUse',
                 permissionDecision: 'deny',
                 permissionDecisionReason:
-                  `AgentObs budget reached: $${overspent.spent.toFixed(2)} spent against a ` +
-                  `$${overspent.limit.toFixed(2)} ${overspent.budget.period} limit. ` +
+                  `AgentObs budget reached: ${budgetAmount(overspent.spent, overspent.unit)} used against a ` +
+                  `${budgetAmount(overspent.limit, overspent.unit)} ${overspent.budget.period} limit. ` +
                   `Raise it with "agentobs budget set --${overspent.budget.period} <amount>" ` +
                   `or remove it with "agentobs budget remove ${overspent.budget.period}".`,
               },

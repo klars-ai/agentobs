@@ -35,6 +35,8 @@ import {
 import { loadPolicy } from '../core/policy-engine.js';
 import { checkBudgets } from '../core/budget.js';
 import { listApprovals } from '../core/approvals.js';
+import { allSources, discover } from '../adapters/agent-sources.js';
+import { agentobsHome } from '../core/paths.js';
 import { forecastBudget } from '../core/forecast.js';
 
 const PUBLIC_DIR = join(dirname(fileURLToPath(import.meta.url)), 'public');
@@ -152,6 +154,22 @@ export function createDashboardServer(opts: ServerOptions) {
         case '/api/models':
           json(res, { models: getModels(db, range) });
           return;
+        case '/api/agents': {
+          const sources = allSources(join(agentobsHome(), 'sources.json'));
+          json(res, {
+            agents: sources.map((s) => {
+              const files = discover(s);
+              return {
+                id: s.id,
+                label: s.label,
+                status: s.status,
+                files: files.length,
+                newest: files[0]?.modifiedAt ?? null,
+              };
+            }),
+          });
+          return;
+        }
         case '/api/approvals':
           json(res, { approvals: listApprovals(db, { state: 'pending' }) });
           return;
