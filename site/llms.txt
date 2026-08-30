@@ -76,12 +76,31 @@ These are design rules, not marketing:
 ## Privacy
 
 Everything is local: a SQLite database under `~/.agentobs`. No account, no
-API key, no telemetry. Secrets are redacted before storage.
+API key, no telemetry. Secrets are redacted before storage - the rules are
+unit-tested and have caught real leaks, but no pattern set catches every secret
+format, so the database should be treated as sensitive rather than sanitised.
 
 The single exception is outbound alerts, and it is opt-in: nothing is sent
 until the user writes a destination into `~/.agentobs/notify.json`, there is
 no default endpoint or vendor, and plain http to a remote host is refused so
 a webhook secret cannot travel in clear text.
+
+## Limits worth stating
+
+AgentObs is a safety net, not a guarantee, and these are documented rather than
+discovered:
+
+- Guardrails fail open by design. A malformed policy degrades to
+  allow-everything and says so; in that state nothing is blocked.
+- Budgets are enforced between tool calls. A call already running is not
+  interrupted, so a limit can be exceeded by the cost of one operation.
+- Enforcement runs through Claude Code's hooks. Where hooks do not fire, no
+  enforcement happens at all.
+- Costs are estimates computed from a local price table, not an invoice.
+- Policy rules match tool inputs textually; a destructive command phrased in a
+  way the rules do not anticipate is not caught.
+
+Full text: https://github.com/klars-ai/agentobs/blob/main/DISCLAIMER.md
 
 ## Links
 

@@ -122,7 +122,9 @@ agentobs uninstall-hooks       # remove only AgentObs's hooks
 This is the part that matters most, since AgentObs sits in the middle of
 everything your agent does.
 
-- **Nothing leaves your machine.** No network calls, no analytics, no account.
+- **Nothing leaves your machine unless you send it.** No telemetry, no analytics,
+  no account. Optional alerts are the one outbound path, off until you configure a
+  destination yourself.
 - **Secrets are redacted before anything is written to disk.** Tool inputs and
   outputs pass through a redaction layer that recognises AWS keys, Anthropic /
   OpenAI / GitHub / GitLab / Slack / Stripe / Google / npm tokens, JWTs, PEM

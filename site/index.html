@@ -122,7 +122,7 @@
       "name": "Does AgentObs send my data anywhere?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "No. Everything is stored in a local SQLite database under ~/.agentobs. There is no account, no API key, no telemetry and no network calls. Secrets are redacted with vendor-specific and structural patterns before anything is written to disk."
+        "text": "Everything is stored in a local SQLite database under ~/.agentobs. There is no account, no API key and no telemetry. The one outbound path is optional alerts: nothing is sent until you configure a destination yourself, and with none set AgentObs never touches the network. Secrets are redacted with vendor-specific and structural patterns before anything is written to disk, though no pattern set catches every secret format."
       }
     },
     {
@@ -409,7 +409,17 @@ agentobs budget set --block5h 200000 --tokens</code></pre>
             <h3>Fails open</h3>
             <p>
               A malformed policy degrades to allow-everything and says so. A guardrail that
-              wedges your agent is worse than none.
+              wedges your agent is worse than none — but it does mean that in that state,
+              nothing is blocked.
+            </p>
+          </article>
+          <article>
+            <h3>A safety net, not a guarantee</h3>
+            <p>
+              Rules match tool inputs textually, budgets are checked between calls, and
+              nothing is enforced where hooks do not run. Set a small limit and confirm it
+              blocks on your machine — see the
+              <a href="https://github.com/klars-ai/agentobs/blob/main/DISCLAIMER.md">limits</a>.
             </p>
           </article>
         </div>
@@ -422,7 +432,11 @@ agentobs budget set --block5h 200000 --tokens</code></pre>
           trustworthy by construction, not by promise.
         </p>
         <ul class="checks">
-          <li><strong>No network calls.</strong> No telemetry, no analytics, no account.</li>
+          <li>
+            <strong>No telemetry, no analytics, no account.</strong> The only outbound request
+            AgentObs makes is to an alert endpoint you configure yourself; with none set, it
+            never touches the network.
+          </li>
           <li>
             <strong>Secrets are redacted before anything touches disk.</strong> AWS, Anthropic,
             OpenAI, GitHub, GitLab, Slack, Stripe and Google keys, JWTs, PEM blocks,
@@ -430,8 +444,9 @@ agentobs budget set --block5h 200000 --tokens</code></pre>
             credentials.
           </li>
           <li>
-            <strong>The redaction rules are unit-tested</strong> — the tests are the guarantee,
-            and they caught real leaks during development.
+            <strong>The redaction rules are unit-tested</strong> — they caught real leaks
+            during development. No pattern set catches every secret format, so treat the
+            local database as sensitive rather than sanitised.
           </li>
           <li>
             <strong>Uninstalling is <code>rm -rf ~/.agentobs</code>.</strong> That is the entire
@@ -491,7 +506,8 @@ agentobs budget set --block5h 200000 --tokens</code></pre>
             <summary>Does any of my data leave the machine?</summary>
             <p>
               No. One SQLite database under <code>~/.agentobs</code>. No account, no API key, no
-              telemetry, no network calls. Secrets are redacted before anything is written, and
+              telemetry. Optional alerts are the one outbound path and are off until you
+              set one. Secrets are redacted before anything is written, and
               those rules are unit-tested.
             </p>
           </details>
@@ -523,13 +539,29 @@ agentobs budget set --block5h 200000 --tokens</code></pre>
 
     <footer class="footer">
       <span>
-        A <a href="https://klars.ai">Klars AI</a> project · MIT licensed
+        A <a href="https://klars.ai">Klars AI</a> project ·
+        <a href="https://github.com/klars-ai/agentobs/blob/main/LICENSE">MIT licensed</a> ·
+        <a href="https://github.com/klars-ai/agentobs/blob/main/DISCLAIMER.md">Limits</a>
       </span>
       <span>
         <a href="https://github.com/klars-ai/agentobs">GitHub</a>
         ·
         <a href="mailto:contact@klars.ai">contact@klars.ai</a>
       </span>
+      <!--
+        Named vendors appear throughout this page to describe what AgentObs can
+        read and enforce against. Saying plainly that none of them endorse it is
+        both accurate and cheaper than being asked.
+      -->
+      <p class="footer-legal">
+        Provided as is, without warranty of any kind. AgentObs is a safety net,
+        not a guarantee — see the
+        <a href="https://github.com/klars-ai/agentobs/blob/main/DISCLAIMER.md">limits</a>
+        before relying on it. Independent and not affiliated with, endorsed by, or
+        supported by Anthropic, OpenAI, Google or GitHub. Claude, Claude Code, Codex,
+        Copilot and Gemini are trademarks of their respective owners, used here only
+        to describe compatibility.
+      </p>
     </footer>
 
     <script>

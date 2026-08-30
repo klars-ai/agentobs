@@ -771,3 +771,25 @@ img.brand-mark {
     transition: none;
   }
 }
+
+/* Footer legal
+   Small and quiet, but present on every page view - the disclaimer is worth
+   nothing if it only exists in a file nobody opens. */
+.footer-legal {
+  flex-basis: 100%;
+  margin: 18px 0 0;
+  max-width: 78ch;
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+.footer-legal a {
+  color: var(--text-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.footer-legal a:hover {
+  color: var(--text-secondary);
+}
