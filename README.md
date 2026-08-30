@@ -146,6 +146,9 @@ agentobs dashboard [--port] [--host] Serve the dashboard (default 127.0.0.1:4300
 agentobs stats [--today] [--since]   Print totals in the terminal
 agentobs run -- <command...>         Observe any command (coarse detail)
 agentobs watch <file.jsonl>          Ingest a JSONL agent log
+agentobs agents                      Which agents are on this machine
+agentobs agents --import             Import from every agent found
+agentobs agents:verify [--agent id]  Check a field map against real logs (read-only)
 agentobs export --format csv|json    Export sessions, tool calls, or decisions
 
 agentobs policy init                 Write a starter policy.json
@@ -369,7 +372,15 @@ Two deliberate behaviours worth knowing:
 ```bash
 agentobs agents            # what is on this machine
 agentobs agents --import   # read from everything found
+agentobs agents:verify     # does each field map actually work here?
 ```
+
+`agents:verify` is the honest answer to "does this adapter work?". It samples
+your real logs and reports, field by field, which dot-path resolved and to what
+value — read-only, so nothing is written to the database. A wrong field map
+records zero rather than erroring, which looks exactly like a quiet week; this
+is how you tell those apart. See
+[CONTRIBUTING.md](CONTRIBUTING.md) to add an agent with no code.
 
 **On "verified" and "unverified":** a source is only marked verified once its
 field names come from the agent's own source or a real log file:

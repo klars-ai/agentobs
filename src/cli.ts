@@ -123,6 +123,28 @@ a definition with an existing id replaces the built-in one.`,
     });
 
   program
+    .command('agents:verify')
+    .alias('verify-agent')
+    .description('Check a field map against real log files, without importing')
+    .option('--agent <id>', 'restrict to one agent id')
+    .option('--files <n>', 'how many files to sample per agent', '5')
+    .option('--json', 'emit JSON', false)
+    .addHelpText(
+      'after',
+      `
+Reports, field by field, which declared dot-path resolved against your real
+logs and what it resolved to. Read-only: nothing is written to the database,
+so it is safe to run against an adapter you do not trust yet.
+
+A field map that is mostly right shows as one MISSING row rather than a
+confusing zero total.`,
+    )
+    .action(async (opts: { agent?: string; json?: boolean; files?: string }) => {
+      const { agentsVerify } = await import('./commands/verify-source.js');
+      await agentsVerify(opts);
+    });
+
+  program
     .command('import')
     .description("Import Claude Code's own transcripts (no hook setup needed)")
     .option('--days <n>', 'only sessions modified in the last n days', '7')
