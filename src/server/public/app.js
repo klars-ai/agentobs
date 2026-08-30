@@ -630,6 +630,16 @@ function renderDelta(el, current, previous, { goodWhenUp = true } = {}) {
     return;
   }
   const change = ((current - previous) / previous) * 100;
+  // A tiny previous period produces a huge, meaningless percentage - "+2300%"
+  // says nothing except that yesterday was nearly empty. Cap the display so
+  // the chip stays informative rather than theatrical.
+  if (Math.abs(change) > 999) {
+    el.className = `delta ${change > 0 === goodWhenUp ? 'delta-good' : 'delta-bad'}`;
+    el.textContent = `${change > 0 ? '▲' : '▼'} vs ${previous}`;
+    el.title = `Previous period had only ${previous}; a percentage would be misleading`;
+    el.removeAttribute('hidden');
+    return;
+  }
   if (!Number.isFinite(change) || Math.abs(change) < 0.5) {
     // Below half a percent is noise; a chip there implies a signal that
     // isn't real.

@@ -180,14 +180,19 @@ export async function importTranscript(
 
     const usage = message.usage as UsageBlock | undefined;
     if (usage && typeof usage === 'object') {
-      // Only genuinely fresh input tokens go in tokensIn. Cache writes and
-      // reads are tracked separately because they bill at different rates,
-      // and because a cache read replays the whole context every turn - the
-      // headline token count must not include the same tokens hundreds of
-      // times.
-      result.tokensIn += usage.input_tokens ?? 0;
+      // Fresh input = uncached input + cache writes. A cache write is real
+      // new content being sent for the first time (just stored for reuse), so
+      // excluding it made "tokens in" absurd: 24K in against 4.6M out, when
+      // real agent usage is heavily input-weighted. It is still tracked
+      // separately for costing, since it bills at 1.25x.
+      //
+      // Cache *reads* stay out of this total: they replay the entire context
+      // on every turn, so counting them would report the same tokens hundreds
+      // of times (2.4 billion across three sessions).
+      const cacheWrite = usage.cache_creation_input_tokens ?? 0;
+      result.tokensIn += (usage.input_tokens ?? 0) + cacheWrite;
       result.tokensOut += usage.output_tokens ?? 0;
-      result.cacheWriteTokens += usage.cache_creation_input_tokens ?? 0;
+      result.cacheWriteTokens += cacheWrite;
 
       // cache_read is the whole conversation context replayed on every single
       // message, so it re-counts the same tokens on each turn - summing it
@@ -235,6 +240,8 @@ export async function importTranscript(
 
   if (!sessionStarted) return result;
 
+  // tokensIn already contains the cache-write tokens, so they are costed once
+  // at the base rate here and only topped up by the extra 0.25x premium.
   const baseCost = computeCost(result.model, result.tokensIn, result.tokensOut);
   const readCost = computeCost(result.model, result.cacheReadTokens, 0);
   const writeCost = computeCost(result.model, result.cacheWriteTokens, 0);
@@ -243,7 +250,7 @@ export async function importTranscript(
       ? null
       : baseCost +
         (readCost ?? 0) * CACHE_READ_RATE +
-        (writeCost ?? 0) * CACHE_WRITE_RATE;
+        (writeCost ?? 0) * (CACHE_WRITE_RATE - 1);
 
   // Session totals come from the transcript's own usage blocks, which are
   // authoritative - the per-call rows have no tokens to sum.
