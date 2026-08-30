@@ -157,6 +157,28 @@ async function refresh() {
 
 function renderSummary(s) {
   document.getElementById('hero-cost').textContent = money(s.total_cost_usd);
+
+  // On a subscription the cost is a list-price equivalent, not a bill. That is
+  // not one caveat among several - it changes what the headline number means,
+  // so it gets its own line rather than competing for the note slot below.
+  // "Spend this week" is false on a subscription - nobody spent it. Rename the
+  // headline so it does not contradict the caveat printed under it.
+  const label = document.getElementById('hero-label');
+  if (label && s.cost_label) {
+    const range = label.querySelector('[data-range-label]');
+    label.textContent = s.cost_label + ' ';
+    if (range) label.appendChild(range);
+  }
+
+  const caveat = document.getElementById('hero-caveat');
+  if (caveat) {
+    if (s.cost_caveat) {
+      caveat.textContent = s.cost_caveat;
+      caveat.hidden = false;
+    } else {
+      caveat.hidden = true;
+    }
+  }
   document.getElementById('hero-tokens-in').textContent = count(s.tokens_in);
   document.getElementById('hero-tokens-out').textContent = count(s.tokens_out);
   document.getElementById('hero-duration').textContent = ms(s.avg_duration_ms);

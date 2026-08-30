@@ -1268,3 +1268,16 @@ tbody td:first-child {
   font-size: 13px;
   padding: 8px 0;
 }
+
+/* The subscription caveat.
+   Sits under the headline figure because it changes what that figure means:
+   on a subscription the number is a list-price equivalent, not a bill. Quiet
+   styling, but never hidden behind a tooltip - an unexplained $5,525 reads as
+   a broken tool. */
+.hero-caveat {
+  margin: 8px 0 0;
+  max-width: 62ch;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}

@@ -2,6 +2,7 @@
  * `agentobs stats` - terminal summary.
  */
 import { openDb } from '../core/db.js';
+import { costCaveat, costLabel, detectPlan } from '../core/plan.js';
 import { getModels, getSummary, getToolsBreakdown, type Range } from '../core/queries.js';
 
 export interface StatsOptions {
@@ -39,20 +40,39 @@ export async function stats(opts: StatsOptions): Promise<void> {
   const summary = getSummary(db, range);
   const tools = getToolsBreakdown(db, range);
 
+  // On a subscription this figure is a list-price equivalent, not money anyone
+  // will be charged. Presenting it unlabelled is how a Max user sees "$5,525
+  // this week" and reasonably concludes the tool is broken.
+  const plan = detectPlan();
+  const caveat = costCaveat(plan);
+
   if (opts.json) {
-    console.log(JSON.stringify({ summary, tools }, null, 2));
+    console.log(JSON.stringify({ summary, tools, plan }, null, 2));
     return;
   }
+
+  // The label is wider on a subscription, so the column is sized to whichever
+  // label is in use rather than to a fixed width that only suits one of them.
+  const label = costLabel(plan);
+  const pad = Math.max(label.length, 'Tool calls'.length) + 2;
 
   console.log(`
 AgentObs · ${range}
 
-  Cost           ${money(summary.total_cost_usd)}
-  Tool calls     ${summary.tool_calls}
-  Sessions       ${summary.sessions}
-  Errors         ${summary.errors} (${(summary.error_rate * 100).toFixed(1)}%)
-  Blocked        ${summary.blocked}
-  Tokens         ${summary.tokens_in.toLocaleString()} in / ${summary.tokens_out.toLocaleString()} out`);
+  ${label.padEnd(pad)}${money(summary.total_cost_usd)}
+  ${'Tool calls'.padEnd(pad)}${summary.tool_calls}
+  ${'Sessions'.padEnd(pad)}${summary.sessions}
+  ${'Errors'.padEnd(pad)}${summary.errors} (${(summary.error_rate * 100).toFixed(1)}%)
+  ${'Blocked'.padEnd(pad)}${summary.blocked}
+  ${'Tokens'.padEnd(pad)}${summary.tokens_in.toLocaleString()} in / ${summary.tokens_out.toLocaleString()} out`);
+
+  if (caveat) {
+    // Wrapped by hand: a single 150-character line in a terminal is unreadable,
+    // and this is the sentence that stops the figure being misread.
+    const [head, rest] = caveat.split(' Cap what actually binds you with token budgets: ');
+    console.log(`\n  ${head}`);
+    if (rest) console.log(`\n  Cap what actually binds you with token budgets:\n    ${rest}`);
+  }
 
   // A zero tool-call count next to a non-zero session count is the single most
   // confusing thing a new user sees - it reads as a broken install. Say which

@@ -34,6 +34,7 @@ import {
 } from '../core/queries.js';
 import { loadPolicy } from '../core/policy-engine.js';
 import { checkBudgets } from '../core/budget.js';
+import { costCaveat, costLabel, detectPlan } from '../core/plan.js';
 import { listApprovals } from '../core/approvals.js';
 import { allSources, discover } from '../adapters/agent-sources.js';
 import { agentobsHome } from '../core/paths.js';
@@ -125,7 +126,15 @@ export function createDashboardServer(opts: ServerOptions) {
         case '/api/summary':
           // Sparklines ride along with the summary: the tiles need both, and
           // one request keeps the 5s poll to a single round trip.
-          json(res, { ...getSummary(db, range), sparklines: getSparklines(db, range) });
+          // The plan travels with the summary so the UI can label a cost
+          // figure that is a list-price equivalent rather than a bill.
+          json(res, {
+            ...getSummary(db, range),
+            sparklines: getSparklines(db, range),
+            plan: detectPlan(),
+            cost_caveat: costCaveat(),
+            cost_label: costLabel(),
+          });
           return;
         case '/api/timeline':
           json(res, getTimeline(db, range));
