@@ -154,6 +154,45 @@ the PreToolUse hook.`,
     });
 
   program
+    .command('mcp')
+    .description('Run as an MCP server so the agent can query its own usage')
+    .addHelpText(
+      'after',
+      `
+Lets you ask Claude "how much have I spent today?" or "am I close to my
+limit?" and have it answer from real local data. Add with:
+
+  claude mcp add agentobs -- agentobs mcp
+
+Exposes: get_usage, get_budget_status, get_projects, get_top_tools.
+All read-only, all local.`,
+    )
+    .action(async () => {
+      const { mcp } = await import('./commands/mcp.js');
+      await mcp();
+    });
+
+  program
+    .command('statusline')
+    .description("Compact status line for Claude Code's status bar (reads JSON on stdin)")
+    .option('--show <segments>', 'comma-separated: limit,budget,cost,context', 'limit,budget,cost,context')
+    .addHelpText(
+      'after',
+      `
+Add to ~/.claude/settings.json:
+
+  "statusLine": { "type": "command", "command": "agentobs statusline" }
+
+Shows your 5-hour rate limit, the budget closest to its limit, session
+cost and context use. The budget segment is the part no other status
+line can show - it needs a limit you set, not usage alone.`,
+    )
+    .action(async (opts) => {
+      const { statusline } = await import('./commands/statusline.js');
+      await statusline(opts);
+    });
+
+  program
     .command('forecast')
     .description('When will you hit your limit at the current burn rate?')
     .option('--watch', 'refresh live instead of printing once', false)

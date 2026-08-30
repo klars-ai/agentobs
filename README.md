@@ -47,6 +47,9 @@ $ agentobs policy test Bash "rm -rf ./build"
 | **Blocks on a spend limit** | ❌ | ❌ | ✅ |
 | **Blocks on your 5-hour window** | ❌ | ❌ | ✅ |
 | **Forecasts when you'll run out** | ❌ | ❌ | ✅ |
+| Status-bar integration | some | ❌ | ✅ |
+| **MCP server** | ❌ | ❌ | ✅ |
+| **Desktop alerts on a limit** | ❌ | ❌ | ✅ |
 | Secret redaction, unit-tested | ❌ | ❌ | ✅ |
 
 **Just want cost reporting?** [ccusage](https://github.com/ryoppippi/ccusage) is
@@ -143,6 +146,8 @@ agentobs budget set --monthly 100 --block        Stop at $100 this month
 agentobs budget set --block5h 200000 --tokens    Watch your 5-hour window
 
 agentobs forecast [--watch]          When will you hit your limit?
+agentobs statusline                  Compact line for Claude Code's status bar
+agentobs mcp                         MCP server: let the agent query its own usage
 agentobs digest                      A readable period summary
 agentobs projects                    Spend grouped by working directory
 ```
@@ -178,6 +183,30 @@ budget in tokens, and `--block5h` tracks that window, so you can see a lockout
 coming instead of hitting it mid-task.
 
 Alerts fire once per period, not once per tool call.
+
+### Status bar
+
+```json
+{ "statusLine": { "type": "command", "command": "agentobs statusline" } }
+```
+
+```
+5h 78%!  ·  $2.00/$5.00 40% -> 44 min  ·  session $1.23  ·  ctx 43%
+```
+
+Your real 5-hour rate limit (read from Claude Code's own payload), the budget
+closest to its limit with a countdown, session cost, and context use.
+
+### Ask the agent
+
+```bash
+claude mcp add agentobs -- agentobs mcp
+```
+
+Then ask Claude directly: *"how much have I spent today?"*, *"am I close to my
+limit?"*, *"which project is costing the most?"* — answered from local data,
+not guessed. Exposes `get_usage`, `get_budget_status`, `get_projects` and
+`get_top_tools`, all read-only.
 
 ### Forecasting
 

@@ -37,6 +37,7 @@ import {
 } from '../core/repo.js';
 import { contextFromToolInput, evaluate, loadPolicy } from '../core/policy-engine.js';
 import { blockingBudget, checkBudgets } from '../core/budget.js';
+import { notify } from '../core/notify.js';
 import { attachTranscriptUsage } from './transcript.js';
 
 const AGENT_NAME = 'claude-code';
@@ -136,6 +137,22 @@ export function handleHook(payload: HookPayload): HookResult {
       // benign the individual command looks.
       try {
         const budgets = checkBudgets(db);
+
+        // Notify on the first crossing only - newlyExceeded is one-shot per
+        // period, so this cannot turn into a notification per tool call.
+        for (const b of budgets) {
+          if (b.newlyExceeded) {
+            const unit = b.unit === 'tokens' ? 'tokens' : 'USD';
+            notify({
+              title: `AgentObs: ${b.budget.period} limit reached`,
+              body:
+                `${b.spent.toFixed(b.unit === 'tokens' ? 0 : 2)} of ${b.limit} ${unit} used` +
+                (b.budget.action === 'block' ? ' - tool calls are now blocked.' : '.'),
+              urgent: b.budget.action === 'block',
+            });
+          }
+        }
+
         const overspent = blockingBudget(budgets);
         if (overspent) {
           beginToolCall(db, {
