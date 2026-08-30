@@ -33,6 +33,7 @@
       </a>
       <nav class="nav-links">
         <a href="#how">How it works</a>
+        <a href="#features">Features</a>
         <a href="#compare">Compare</a>
         <a href="#guardrails">Guardrails</a>
         <a href="#privacy">Privacy</a>
@@ -94,7 +95,7 @@
       </section>
 
       <section class="section" id="how">
-        <h2>Four commands</h2>
+        <h2>Set up in one command</h2>
         <ol class="steps">
           <li>
             <span class="step-n">1</span>
@@ -102,43 +103,100 @@
               <h3>Install</h3>
               <pre><code>npm install -g @klars/agentobs
 agentobs init</code></pre>
-              <p>Creates <code>~/.agentobs</code>. Nothing leaves your machine.</p>
+              <p>
+                <code>init</code> writes the Claude Code hooks for you (backing up your
+                settings first), adds starter guardrails, and imports your existing
+                history — so the dashboard has data immediately.
+                <strong>Nothing to copy or paste.</strong>
+              </p>
             </div>
           </li>
           <li>
             <span class="step-n">2</span>
             <div>
-              <h3>Import what you have already done</h3>
-              <pre><code>agentobs import</code></pre>
+              <h3>Set a limit</h3>
+              <pre><code>agentobs budget set --daily 5 --block
+agentobs budget set --block5h 200000 --tokens</code></pre>
               <p>
-                Reads Claude Code's own session transcripts — every tool call, token
-                and dollar, backfilled. <strong>No hooks, no configuration.</strong>
+                <code>--block</code> refuses further tool calls at the limit. On a
+                subscription the constraint is not dollars but your rolling 5-hour
+                window, so a budget can be denominated in tokens instead.
               </p>
             </div>
           </li>
           <li>
             <span class="step-n">3</span>
             <div>
-              <h3>Open the dashboard</h3>
-              <pre><code>agentobs dashboard</code></pre>
-              <p>Runs at <code>127.0.0.1:4300</code>.</p>
+              <h3>See it coming</h3>
+              <pre><code>agentobs forecast</code></pre>
+              <p>
+                <em>“At $4.14/hour you hit the limit in 44 min.”</em> A forecast needs
+                the limit as well as the usage — which is why a read-only usage tool
+                cannot tell you this.
+              </p>
             </div>
           </li>
           <li>
             <span class="step-n">4</span>
             <div>
-              <h3>Add guardrails (optional)</h3>
-              <pre><code>agentobs policy init</code></pre>
-              <p>
-                Blocks <code>rm -rf</code> and <code>curl | sh</code> out of the box.
-                Blocking needs the Claude Code hook that <code>agentobs init</code>
-                prints — importing alone is after-the-fact.
-              </p>
+              <h3>Watch it</h3>
+              <pre><code>agentobs dashboard</code></pre>
+              <p>Runs at <code>127.0.0.1:4300</code>. Nothing leaves your machine.</p>
             </div>
           </li>
         </ol>
       </section>
 
+      <section class="section" id="features">
+        <h2>What else it does</h2>
+        <div class="cards">
+          <article>
+            <h3>Approvals that actually ask</h3>
+            <p>
+              A <code>needs_approval</code> rule holds the call and notifies you.
+              Approve it and the agent's retry succeeds — scoped to that exact call,
+              so approving <code>rm -rf ./build</code> never authorises
+              <code>rm -rf /</code>.
+            </p>
+          </article>
+          <article>
+            <h3>Ask the agent itself</h3>
+            <p>
+              <code>claude mcp add agentobs -- agentobs mcp</code> — then ask Claude
+              “am I close to my limit?” and it answers from your real local data.
+            </p>
+          </article>
+          <article>
+            <h3>In your status bar</h3>
+            <p>
+              <code>5h 78% · $2.00/$5.00 → 44 min · ctx 43%</code><br />
+              Your real rate limit, the tightest budget, and a countdown.
+            </p>
+          </article>
+          <article>
+            <h3>Fast enough to run constantly</h3>
+            <p>
+              A statusline render is <strong>0.6ms</strong> through the optional warm
+              daemon. Everything works without it — the daemon is a pure optimisation.
+            </p>
+          </article>
+          <article>
+            <h3>Other agents too</h3>
+            <p>
+              <code>agentobs agents --import</code> reads Copilot CLI, Codex, Gemini
+              CLI and OpenCode logs. Add one we have never heard of with a JSON
+              definition — no code.
+            </p>
+          </article>
+          <article>
+            <h3>Honest about what it knows</h3>
+            <p>
+              An unpriced model shows <code>—</code>, never <code>$0.00</code>. An
+              unverified log format says so rather than silently recording nothing.
+            </p>
+          </article>
+        </div>
+      </section>
 
       <section class="section" id="compare">
         <h2>What makes it different</h2>
