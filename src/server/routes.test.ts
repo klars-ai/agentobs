@@ -26,6 +26,7 @@ const { startDashboard } = await import('./index.js');
 const ROUTES = [
   '/api/summary',
   '/api/daily',
+  '/api/hints',
   '/api/timeline',
   '/api/tools-breakdown',
   '/api/tool-calls',

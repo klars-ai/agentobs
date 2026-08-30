@@ -1386,3 +1386,82 @@ tbody td:first-child {
   line-height: 1.5;
   color: var(--text-muted);
 }
+
+/* Optimisation hints
+   Reads as advice, not as an alert. These are suggestions drawn from the data,
+   not problems demanding attention, so the styling is calm - a coloured tag
+   for the category and nothing else shouting. */
+.hints {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1px;
+  background: var(--grid);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.hint {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  padding: 15px 18px;
+  background: var(--surface);
+  align-items: start;
+}
+
+.hint-tag {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  margin-top: 2px;
+}
+
+/* Category colour, not severity colour: none of these is an error. */
+.hint-cost .hint-tag {
+  background: color-mix(in srgb, var(--series-1) 14%, transparent);
+  color: var(--series-1);
+}
+.hint-reliability .hint-tag {
+  background: color-mix(in srgb, var(--status-critical) 12%, transparent);
+  color: var(--status-critical);
+}
+.hint-speed .hint-tag {
+  background: color-mix(in srgb, var(--series-3) 14%, transparent);
+  color: var(--series-3);
+}
+.hint-hygiene .hint-tag {
+  background: var(--raised);
+  color: var(--text-secondary);
+}
+
+.hint-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--text-primary);
+}
+
+.hint-detail {
+  margin: 5px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  max-width: 78ch;
+}
+
+@media (max-width: 560px) {
+  .hint {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .hint-tag {
+    justify-self: start;
+  }
+}

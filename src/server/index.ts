@@ -35,6 +35,7 @@ import {
 } from '../core/queries.js';
 import { loadPolicy } from '../core/policy-engine.js';
 import { checkBudgets } from '../core/budget.js';
+import { getHints } from '../core/advice.js';
 import { costCaveat, costLabel, detectPlan } from '../core/plan.js';
 import { listApprovals } from '../core/approvals.js';
 import { allSources, discover } from '../adapters/agent-sources.js';
@@ -137,6 +138,10 @@ export function createDashboardServer(opts: ServerOptions) {
             cost_label: costLabel(),
           });
           return;
+        case '/api/hints':
+          json(res, { hints: getHints(db, range) });
+          return;
+
         case '/api/daily':
           json(res, {
             rows: getDaily(db, range),

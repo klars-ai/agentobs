@@ -7,7 +7,10 @@
  */
 
 const state = {
-  range: '7d',
+  // Today by default. A week is the wrong first answer to "what is my agent
+  // doing" - it averages a quiet Sunday into a heavy Tuesday and hides the
+  // thing the user opened the dashboard to check, which is now.
+  range: 'today',
   status: '',
   timeline: [],
   sparklines: null,
@@ -98,7 +101,7 @@ function setConnection(ok, message) {
 
 async function refresh() {
   try {
-    const [summary, timeline, tools, calls, sessions, projects, models, budgets, daily] =
+    const [summary, timeline, tools, calls, sessions, projects, models, budgets, daily, hints] =
       await Promise.all([
         fetchJson('/api/summary'),
         fetchJson('/api/timeline'),
@@ -109,6 +112,7 @@ async function refresh() {
         fetchJson('/api/models'),
         fetchJson('/api/budgets'),
         fetchJson('/api/daily'),
+        fetchJson('/api/hints'),
       ]);
 
     state.summary = summary;
@@ -121,6 +125,7 @@ async function refresh() {
     renderSessions(sessions.sessions ?? []);
 
     renderDaily(daily);
+    renderHints(hints.hints ?? []);
     renderBudgets(budgets.budgets ?? []);
     renderRanked('bd-projects', projects.projects ?? [], {
       name: (r) => tildePath(r.project),
@@ -156,6 +161,48 @@ async function refresh() {
 }
 
 /* ---------- render ---------- */
+/**
+ * Optimisation hints.
+ *
+ * Hidden entirely when there is nothing to say. An empty "Suggestions" box
+ * with encouraging filler is worse than no box: it trains the reader to skip
+ * the area, and then they skip it on the day it matters.
+ */
+function renderHints(hints) {
+  const panel = document.getElementById('hints-panel');
+  const list = document.getElementById('hints-list');
+  if (!panel || !list) return;
+
+  if (!hints.length) {
+    panel.hidden = true;
+    return;
+  }
+  panel.hidden = false;
+  list.textContent = '';
+
+  for (const h of hints) {
+    const li = document.createElement('li');
+    li.className = `hint hint-${h.kind}`;
+
+    const tag = document.createElement('span');
+    tag.className = 'hint-tag';
+    tag.textContent = h.kind;
+    li.appendChild(tag);
+
+    const body = document.createElement('div');
+    const title = document.createElement('p');
+    title.className = 'hint-title';
+    title.textContent = h.title;
+    const detail = document.createElement('p');
+    detail.className = 'hint-detail';
+    detail.textContent = h.detail;
+    body.append(title, detail);
+    li.appendChild(body);
+
+    list.appendChild(li);
+  }
+}
+
 /**
  * Day-by-day table.
  *

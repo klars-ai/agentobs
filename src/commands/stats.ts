@@ -2,6 +2,7 @@
  * `agentobs stats` - terminal summary.
  */
 import { openDb } from '../core/db.js';
+import { getHints } from '../core/advice.js';
 import { costCaveat, costLabel, detectPlan } from '../core/plan.js';
 import { getModels, getSummary, getToolsBreakdown, type Range } from '../core/queries.js';
 
@@ -122,6 +123,29 @@ AgentObs · ${range}
             `${m.tokens.toLocaleString().padStart(13)} ${money(m.cost_usd).padStart(10)}`,
         );
       }
+    }
+  }
+
+  // Hints last: the numbers above are what was asked for, and this is the
+  // "so what". Nothing prints when there is nothing worth saying.
+  const hints = getHints(db, range);
+  if (hints.length > 0) {
+    console.log('\n  Worth a look');
+    console.log('  ' + '-'.repeat(46));
+    for (const h of hints) {
+      console.log(`  [${h.kind}] ${h.title}`);
+      // Wrapped to a terminal width rather than printed as one long line.
+      const words = h.detail.split(' ');
+      let line = '   ';
+      for (const w of words) {
+        if ((line + w).length > 74) {
+          console.log(line);
+          line = '   ';
+        }
+        line += ` ${w}`;
+      }
+      if (line.trim()) console.log(line);
+      console.log('');
     }
   }
 

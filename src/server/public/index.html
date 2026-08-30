@@ -22,8 +22,8 @@
 
       <div class="topbar-actions">
         <div class="rangeset" role="group" aria-label="Time range">
-          <button type="button" data-range="today">Today</button>
-          <button type="button" data-range="7d" aria-pressed="true">7 days</button>
+          <button type="button" data-range="today" aria-pressed="true">Today</button>
+          <button type="button" data-range="7d">7 days</button>
           <button type="button" data-range="30d">30 days</button>
           <button type="button" data-range="all">All</button>
         </div>
@@ -154,6 +154,15 @@
             <tfoot id="daily-foot"></tfoot>
           </table>
         </div>
+      </section>
+      <section class="panel tabbed hints-panel" data-panel="overview" id="hints-panel" hidden aria-labelledby="hints-title">
+        <div class="panel-head">
+          <div>
+            <h2 id="hints-title"><svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5a4.5 4.5 0 0 0-2.6 8.2c.4.3.6.7.6 1.1v.7h4v-.7c0-.4.2-.8.6-1.1A4.5 4.5 0 0 0 8 1.5Z" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M6.5 14h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Worth a look</h2>
+            <p class="panel-sub">Drawn from this range only. Nothing here is a guess - each one names the number behind it.</p>
+          </div>
+        </div>
+        <ul class="hints" id="hints-list"></ul>
       </section>
       <section class="panel tabbed" data-panel="overview" aria-labelledby="timeline-title">
         <div class="panel-head">
