@@ -168,6 +168,26 @@ across calls to manufacture a number.
 Model prices live in `~/.agentobs/pricing.json` and are yours to edit. A model
 missing from that file shows cost as `—`, never `$0.00`.
 
+
+### Hook latency
+
+The hook does its own work in **well under 1ms** (measured: ~0.3ms per
+invocation, including the SQLite write). What you actually pay per tool call is
+**Node.js process startup**, since Claude Code spawns the hook as a fresh
+process each time.
+
+On a typical Linux/macOS machine that is ~40-80ms. On Windows with real-time
+antivirus scanning it can reach **1-1.5 seconds** - and that cost is not
+specific to AgentObs: a bare `node -e "0"` measures the same. Check yours with:
+
+```bash
+node -e "0"          # time this; it is the floor for any Node-based hook
+```
+
+If it is slow, adding an exclusion for your Node install directory and
+`~/.agentobs` in your antivirus settings is the fix. There is no code change
+that avoids it - the cost is paid before AgentObs runs at all.
+
 ---
 
 ## Dashboard access
