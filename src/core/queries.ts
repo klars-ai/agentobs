@@ -118,6 +118,18 @@ export function getSummary(db: DatabaseSync, range: Range): Summary {
     n: number;
   };
 
+  // Session-level totals. Transcript imports record tokens per session (usage
+  // is reported per assistant message, not per tool call), so summing the
+  // per-call columns alone would report a fully-imported session as zero.
+  const sessionTotals = db
+    .prepare(
+      `SELECT COALESCE(SUM(total_tokens_in), 0) AS tokens_in,
+              COALESCE(SUM(total_tokens_out), 0) AS tokens_out,
+              SUM(total_cost_usd) AS cost
+         FROM sessions ${where}`,
+    )
+    .get(...args) as Record<string, number | null>;
+
   const byFidelity = db
     .prepare(
       `SELECT
@@ -133,15 +145,20 @@ export function getSummary(db: DatabaseSync, range: Range): Summary {
   return {
     range,
     since,
-    total_cost_usd: calls.total_cost_usd === null ? null : Number(calls.total_cost_usd),
+    total_cost_usd:
+      calls.total_cost_usd === null && sessionTotals.cost === null
+        ? null
+        : Math.max(Number(calls.total_cost_usd ?? 0), Number(sessionTotals.cost ?? 0)),
     uncosted_calls: Number(calls.uncosted_calls ?? 0),
     tool_calls: toolCalls,
     sessions: Number(sessions.n ?? 0),
     errors,
     blocked: Number(calls.blocked ?? 0),
     error_rate: toolCalls === 0 ? 0 : errors / toolCalls,
-    tokens_in: Number(calls.tokens_in ?? 0),
-    tokens_out: Number(calls.tokens_out ?? 0),
+    // Prefer whichever source actually has data: hook/JSONL data lands on the
+    // tool-call rows, transcript imports on the session rows.
+    tokens_in: Math.max(Number(calls.tokens_in ?? 0), Number(sessionTotals.tokens_in ?? 0)),
+    tokens_out: Math.max(Number(calls.tokens_out ?? 0), Number(sessionTotals.tokens_out ?? 0)),
     avg_duration_ms: calls.avg_duration_ms === null ? null : Number(calls.avg_duration_ms),
     coarse_sessions: Number(byFidelity.coarse ?? 0),
     rich_sessions: Number(byFidelity.rich ?? 0),

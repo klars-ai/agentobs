@@ -39,6 +39,9 @@ export const DEFAULT_PRICING: PricingTable = {
     'Prices in USD per 1,000,000 tokens. Edit freely - AgentObs reads this file at runtime. A model missing here shows cost as blank rather than a guess.',
   updated: '2026-08-29',
   models: {
+    'claude-opus-5': { input_per_mtok: 15, output_per_mtok: 75 },
+    'claude-sonnet-5': { input_per_mtok: 3, output_per_mtok: 15 },
+    'claude-fable-5': { input_per_mtok: 3, output_per_mtok: 15 },
     'claude-opus-4': { input_per_mtok: 15, output_per_mtok: 75 },
     'claude-sonnet-4': { input_per_mtok: 3, output_per_mtok: 15 },
     'claude-haiku-4-5': { input_per_mtok: 1, output_per_mtok: 5 },

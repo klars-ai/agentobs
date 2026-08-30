@@ -53,7 +53,7 @@ export function buildProgram(): Command {
 
   program
     .command('watch')
-    .argument('<file>', 'JSONL file to tail')
+    .argument('[file]', 'JSONL file to tail')
     .description('Ingest a newline-delimited JSON agent log')
     .addHelpText(
       'after',
@@ -66,7 +66,7 @@ The file should contain one JSON object per line with a "type" field
     )
     .option('--agent <name>', 'agent name to record', 'generic')
     .option('--no-follow', 'process existing lines then exit')
-    .action(async (file, opts) => {
+    .action(async (file: string | undefined, opts) => {
       const { watch } = await import('./commands/watch.js');
       await watch(file, opts);
     });
@@ -91,6 +91,33 @@ On Windows, cmd.exe builtins (dir, echo, type) need: agentobs run -- cmd /c dir`
     .action(async (command: string[] | undefined, opts) => {
       const { run } = await import('./commands/run.js');
       await run(command ?? [], opts);
+    });
+
+  program
+    .command('import')
+    .description("Import Claude Code's own transcripts (no hook setup needed)")
+    .option('--days <n>', 'only sessions modified in the last n days', '7')
+    .option('--all', 'import every transcript found, however old', false)
+    .option('--dry-run', 'list what would be imported, write nothing', false)
+    .option('--session <id>', 'import one specific session id')
+    .addHelpText(
+      'after',
+      `
+Claude Code writes a JSONL transcript per session under
+~/.claude/projects/. This reads them directly, so it works even when
+hooks are not firing - and it backfills everything you have already done.
+
+Examples:
+  agentobs import                 last 7 days
+  agentobs import --all           everything
+  agentobs import --dry-run       show what would be imported
+
+Historical data cannot be blocked retroactively; guardrails still need
+the PreToolUse hook.`,
+    )
+    .action(async (opts) => {
+      const { importCommand } = await import('./commands/import.js');
+      await importCommand(opts);
     });
 
   program
