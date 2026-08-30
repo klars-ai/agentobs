@@ -350,36 +350,38 @@ agentobs budget set --block5h 200000 --tokens</code></pre>
                 <th scope="col">Budget<br />blockers</th>
                 <th scope="col">Security<br />hooks</th>
                 <th scope="col">Team<br />gateways</th>
-                <th scope="col">AgentObs</th>
+                <th scope="col" class="ours">AgentObs</th>
               </tr>
             </thead>
             <tbody>
               <tr class="group"><th colspan="7" scope="colgroup">Seeing what happened</th></tr>
-              <tr><td>Cost &amp; token reporting</td><td class="y">Yes</td><td class="y">Yes</td><td class="y">Yes</td><td class="n">No</td><td class="y">Yes</td><td class="y">Yes</td></tr>
-              <tr><td>Agents supported</td><td class="y">16+</td><td>1</td><td>1</td><td>1</td><td class="n">n/a</td><td class="p">5</td></tr>
-              <tr><td>Web dashboard</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td>Some</td><td class="y">Yes</td><td class="y">Yes</td></tr>
-              <tr><td>Status-bar integration</td><td>Some</td><td class="y">Yes</td><td>Some</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
-
+              <tr><th scope="row">Cost &amp; token reporting</th><td class="y" title="Yes"><span class="sr">Yes</span></td><td class="y" title="Yes"><span class="sr">Yes</span></td><td class="y" title="Yes"><span class="sr">Yes</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="y" title="Yes"><span class="sr">Yes</span></td><td class="y" title="Yes"><span class="sr">Yes</span></td></tr>
+              <tr><th scope="row">Agents supported</th><td>16+</td><td>1</td><td>1</td><td>1</td><td>&ndash;</td><td>5</td></tr>
+              <tr><th scope="row">Web dashboard</th><td class="n" title="No"><span class="sr">No</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="p" title="Partly: some"><span class="sr">Partly</span><span class="qual">some</span></td><td class="y" title="Yes"><span class="sr">Yes</span></td><td class="y" title="Yes"><span class="sr">Yes</span></td></tr>
+              <tr><th scope="row">Status-bar integration</th><td class="p" title="Partly: some"><span class="sr">Partly</span><span class="qual">some</span></td><td class="y" title="Yes"><span class="sr">Yes</span></td><td class="p" title="Partly: some"><span class="sr">Partly</span><span class="qual">some</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="y" title="Yes"><span class="sr">Yes</span></td></tr>
               <tr class="group"><th colspan="7" scope="colgroup">Stopping it before it runs</th></tr>
-              <tr><td>Blocks on a dollar limit</td><td class="n">No</td><td class="p">One run</td><td class="y">Yes</td><td class="n">No</td><td class="y">Yes</td><td class="y">Yes</td></tr>
-              <tr><td>Blocks dangerous commands</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td><td class="n">No</td><td class="y">Yes</td></tr>
-              <tr><td><strong>Blocks on a token budget</strong></td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
-              <tr><td><strong>Limits that outlive the session</strong></td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td><td class="n">No</td><td class="y">Yes</td><td class="y">Yes</td></tr>
-              <tr><td><strong>Blocks on your 5-hour window</strong></td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
-              <tr><td><strong>Approvals scoped to the exact input</strong></td><td class="n">No</td><td class="p">Prompt</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
-
+              <tr><th scope="row">Blocks on a dollar limit</th><td class="n" title="No"><span class="sr">No</span></td><td class="p" title="Partly: one run"><span class="sr">Partly</span><span class="qual">one run</span></td><td class="y" title="Yes"><span class="sr">Yes</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="y" title="Yes"><span class="sr">Yes</span></td><td class="y" title="Yes"><span class="sr">Yes</span></td></tr>
+              <tr><th scope="row">Blocks dangerous commands</th><td class="n" title="No"><span class="sr">No</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="y" title="Yes"><span class="sr">Yes</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="y" title="Yes"><span class="sr">Yes</span></td></tr>
+              <tr><th scope="row"><strong>Blocks on a token budget</strong></th><td class="n" title="No"><span class="sr">No</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="y" title="Yes"><span class="sr">Yes</span></td></tr>
+              <tr><th scope="row"><strong>Limits that outlive the session</strong></th><td class="n" title="No"><span class="sr">No</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="y" title="Yes"><span class="sr">Yes</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="y" title="Yes"><span class="sr">Yes</span></td><td class="y" title="Yes"><span class="sr">Yes</span></td></tr>
+              <tr><th scope="row"><strong>Blocks on your 5-hour window</strong></th><td class="n" title="No"><span class="sr">No</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="y" title="Yes"><span class="sr">Yes</span></td></tr>
+              <tr><th scope="row"><strong>Approvals scoped to the exact input</strong></th><td class="n" title="No"><span class="sr">No</span></td><td class="p" title="Partly: prompt only"><span class="sr">Partly</span><span class="qual">prompt only</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="y" title="Yes"><span class="sr">Yes</span></td></tr>
               <tr class="group"><th colspan="7" scope="colgroup">Knowing before it happens</th></tr>
-              <tr><td><strong>Forecasts when you&rsquo;ll run out</strong></td><td class="p">Some</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
-              <tr><td>Alerts to Slack or Discord</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td><td class="y">Yes</td></tr>
-              <tr><td><strong>The agent can query its own usage</strong></td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td></tr>
-
+              <tr><th scope="row"><strong>Forecasts when you&rsquo;ll run out</strong></th><td class="p" title="Partly: some"><span class="sr">Partly</span><span class="qual">some</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="y" title="Yes"><span class="sr">Yes</span></td></tr>
+              <tr><th scope="row">Alerts to Slack or Discord</th><td class="n" title="No"><span class="sr">No</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="y" title="Yes"><span class="sr">Yes</span></td><td class="y" title="Yes"><span class="sr">Yes</span></td></tr>
+              <tr><th scope="row"><strong>The agent can query its own usage</strong></th><td class="n" title="No"><span class="sr">No</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="y" title="Yes"><span class="sr">Yes</span></td></tr>
               <tr class="group"><th colspan="7" scope="colgroup">Practicalities</th></tr>
-              <tr><td>Useful on a subscription plan</td><td class="y">Yes</td><td class="y">Yes</td><td class="p">Inert</td><td class="y">Yes</td><td class="n">No</td><td class="y">Yes</td></tr>
-              <tr><td>Team-wide limits</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="y">Yes</td><td class="n">No</td></tr>
-              <tr><td>No proxy or API-key change</td><td class="y">Yes</td><td class="y">Yes</td><td class="y">Yes</td><td class="y">Yes</td><td class="n">No</td><td class="y">Yes</td></tr>
-              <tr><td>Secret redaction, unit-tested</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td>Varies</td><td class="y">Yes</td></tr>
+              <tr><th scope="row">Useful on a subscription plan</th><td class="y" title="Yes"><span class="sr">Yes</span></td><td class="y" title="Yes"><span class="sr">Yes</span></td><td class="p" title="Partly: inert"><span class="sr">Partly</span><span class="qual">inert</span></td><td class="y" title="Yes"><span class="sr">Yes</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="y" title="Yes"><span class="sr">Yes</span></td></tr>
+              <tr><th scope="row">Team-wide limits</th><td class="n" title="No"><span class="sr">No</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="y" title="Yes"><span class="sr">Yes</span></td><td class="n" title="No"><span class="sr">No</span></td></tr>
+              <tr><th scope="row">No proxy or API-key change</th><td class="y" title="Yes"><span class="sr">Yes</span></td><td class="y" title="Yes"><span class="sr">Yes</span></td><td class="y" title="Yes"><span class="sr">Yes</span></td><td class="y" title="Yes"><span class="sr">Yes</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="y" title="Yes"><span class="sr">Yes</span></td></tr>
+              <tr><th scope="row">Secret redaction, unit-tested</th><td class="n" title="No"><span class="sr">No</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="n" title="No"><span class="sr">No</span></td><td class="p" title="Partly: varies"><span class="sr">Partly</span><span class="qual">varies</span></td><td class="y" title="Yes"><span class="sr">Yes</span></td></tr>
             </tbody>
           </table>
+          <ul class="compare-legend">
+            <li><i class="lg-y"></i> Yes</li>
+            <li><i class="lg-p"></i> Partly &mdash; the qualifier is shown under the mark</li>
+            <li><i class="lg-n"></i> No</li>
+          </ul>
         </div>
         <p class="section-lede" style="margin-top:20px">
           <strong>Who each column is.</strong> Cost trackers:

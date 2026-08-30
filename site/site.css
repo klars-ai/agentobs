@@ -681,25 +681,101 @@ img.brand-mark {
   font-weight: 600;
 }
 
-/* Yes/No carry a glyph as well as colour: the status-palette rule, and it
-   keeps the table readable in grayscale or with CVD. */
-.compare .y {
-  color: var(--series-3);
-  font-weight: 620;
-}
-.compare .y::before {
-  content: '\2713 ';
-}
-.compare .n {
-  color: var(--text-muted);
-}
-.compare .n::before {
-  content: '\2013 ';
+/* Visually hidden, still announced.
+   The answer cells show a mark drawn in CSS, which a screen reader cannot see
+   and in-page search cannot find - so the word itself ships in the markup and
+   is clipped rather than removed. display:none would hide it from both. */
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
-/* A caption states the table's method. A comparison whose method is hidden is
-   an advertisement, so this one says it names categories and includes rows we
-   lose. */
+/* Answer cells
+   Icon-only, centred, with the word carried in a tooltip and for screen
+   readers. Reading eighteen rows of "Yes"/"No" as text is slow; a column of
+   marks can be scanned in one pass. The mark is a shape as well as a colour,
+   so the table survives grayscale printing and colour-vision deficiency -
+   never colour alone. */
+.compare td.y,
+.compare td.n,
+.compare td.p {
+  text-align: center;
+  font-size: 0;               /* hide the text node; ::before carries the mark */
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.compare td.y::before,
+.compare td.n::before,
+.compare td.p::before {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  font-family: var(--font);
+  line-height: 1;
+}
+
+/* Yes: a filled tick on a tinted disc. */
+.compare td.y::before {
+  content: '✓';
+  color: var(--series-3);
+  background: color-mix(in srgb, var(--series-3) 14%, transparent);
+}
+
+/* No: a hollow ring rather than a cross. A cross reads as an error, and a
+   competitor lacking a feature is not an error. */
+.compare td.n::before {
+  content: '';
+  border: 1.5px solid var(--grid);
+  background: transparent;
+}
+
+/* Partial: a half-filled disc for a qualified answer. */
+.compare td.p::before {
+  content: '';
+  border: 1.5px solid color-mix(in srgb, var(--series-2, var(--text-muted)) 55%, transparent);
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--series-2, var(--text-muted)) 30%, transparent) 50%,
+    transparent 50%
+  );
+}
+
+/* Cells carrying a real value - a count, or a word like "Some" - stay textual
+   and centred alongside the marks. */
+.compare tbody td:not(:first-child) {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+/* The qualifier under a partial mark: what "partly" actually means, so the
+   reader never has to guess. */
+.compare .qual {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.3;
+  margin-top: 5px;
+  color: var(--text-muted);
+  white-space: normal;
+}
+
+.compare td.p .qual {
+  font-size: 11px;            /* re-assert: parent sets font-size 0 */
+}
+
 .compare-caption {
   caption-side: top;
   text-align: left;
@@ -710,11 +786,57 @@ img.brand-mark {
   max-width: 74ch;
 }
 
+/* A legend, because an icon table without one asks the reader to infer. */
+.compare-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.compare-legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.compare-legend i {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  font-style: normal;
+  flex: none;
+}
+
+.compare-legend .lg-y {
+  content: '✓';
+  color: var(--series-3);
+  background: color-mix(in srgb, var(--series-3) 14%, transparent);
+}
+.compare-legend .lg-y::before { content: '✓'; }
+.compare-legend .lg-n { border: 1.5px solid var(--grid); }
+.compare-legend .lg-p {
+  border: 1.5px solid color-mix(in srgb, var(--series-2, var(--text-muted)) 55%, transparent);
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--series-2, var(--text-muted)) 30%, transparent) 50%,
+    transparent 50%
+  );
+}
+
 /* Grouping rows by the question they answer - seeing, stopping, knowing -
    turns eighteen flat rows into four readable ideas, and stops the eye from
-   reading a long column of "No" as a rigged table. */
+   reading a long column of marks as a rigged table. */
 .compare tr.group th {
-  padding: 20px 14px 8px;
+  padding: 22px 14px 9px;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.09em;
@@ -727,17 +849,6 @@ img.brand-mark {
 
 .compare tbody tr.group:first-child th {
   padding-top: 12px;
-}
-
-/* A qualified answer is neither a yes nor a no, and flattening it to either
-   would misrepresent a competitor. */
-.compare .p {
-  color: var(--text-secondary);
-  font-weight: 560;
-}
-.compare .p::before {
-  content: '~ ';
-  color: var(--text-muted);
 }
 
 /* FAQ
