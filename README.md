@@ -46,6 +46,7 @@ $ agentobs policy test Bash "rm -rf ./build"
 | Blocks dangerous commands | ❌ | ✅ | ✅ |
 | **Blocks on a spend limit** | ❌ | ❌ | ✅ |
 | **Blocks on your 5-hour window** | ❌ | ❌ | ✅ |
+| **Forecasts when you'll run out** | ❌ | ❌ | ✅ |
 | Secret redaction, unit-tested | ❌ | ❌ | ✅ |
 
 **Just want cost reporting?** [ccusage](https://github.com/ryoppippi/ccusage) is
@@ -141,6 +142,7 @@ agentobs budget set --daily 5        Warn past $5 today
 agentobs budget set --monthly 100 --block        Stop at $100 this month
 agentobs budget set --block5h 200000 --tokens    Watch your 5-hour window
 
+agentobs forecast [--watch]          When will you hit your limit?
 agentobs digest                      A readable period summary
 agentobs projects                    Spend grouped by working directory
 ```
@@ -176,6 +178,25 @@ budget in tokens, and `--block5h` tracks that window, so you can see a lockout
 coming instead of hitting it mid-task.
 
 Alerts fire once per period, not once per tool call.
+
+### Forecasting
+
+```bash
+$ agentobs forecast
+
+  DAILY  $2.00 of $5.00  (40%)
+  [##########..............]
+  At $4.14/hour you hit the limit in 44 min (~10:27 am),
+  14h 16m before the period resets.
+```
+
+A forecast needs the limit *and* the usage, which is why a read-only usage
+tool cannot tell you this. `--watch` refreshes it live.
+
+The rate is measured over the last hour of **actual activity**, not the whole
+period: averaging a 40-minute burst across four idle hours dilutes it roughly
+sevenfold and under-warns exactly the person who is working right now. With
+too few samples it says so rather than projecting from noise.
 
 ---
 

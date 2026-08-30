@@ -153,6 +153,25 @@ the PreToolUse hook.`,
       await projects(opts);
     });
 
+  program
+    .command('forecast')
+    .description('When will you hit your limit at the current burn rate?')
+    .option('--watch', 'refresh live instead of printing once', false)
+    .option('--json', 'emit JSON', false)
+    .addHelpText(
+      'after',
+      `
+Needs at least one budget - a forecast requires the limit as well as the
+usage, which is why a read-only usage tool cannot tell you this.
+
+  agentobs budget set --block5h 200000 --tokens
+  agentobs forecast --watch`,
+    )
+    .action(async (opts) => {
+      const { forecast } = await import('./commands/forecast.js');
+      await forecast(opts);
+    });
+
   const budget = program
     .command('budget')
     .description('Spend limits - warn or block when an agent passes a threshold')

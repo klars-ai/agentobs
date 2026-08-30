@@ -33,6 +33,7 @@ import {
 } from '../core/queries.js';
 import { loadPolicy } from '../core/policy-engine.js';
 import { checkBudgets } from '../core/budget.js';
+import { forecastBudget } from '../core/forecast.js';
 
 const PUBLIC_DIR = join(dirname(fileURLToPath(import.meta.url)), 'public');
 
@@ -158,9 +159,16 @@ export function createDashboardServer(opts: ServerOptions) {
           json(res, getSessionDetail(db, id));
           return;
         }
-        case '/api/budgets':
-          json(res, { budgets: checkBudgets(db, { record: false }) });
+        case '/api/budgets': {
+          const statuses = checkBudgets(db, { record: false });
+          json(res, {
+            budgets: statuses.map((status) => ({
+              ...status,
+              forecast: forecastBudget(db, status),
+            })),
+          });
           return;
+        }
         case '/api/policy':
           json(res, {
             ...loadPolicy(),
