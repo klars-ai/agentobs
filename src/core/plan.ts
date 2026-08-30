@@ -30,9 +30,22 @@ export interface PlanInfo {
 }
 
 /** Where Claude Code keeps its account state. */
-function claudeConfigFile(): string {
+function claudeConfigFiles(): string[] {
   const dir = process.env.CLAUDE_CONFIG_DIR;
-  return dir ? join(dir, '.claude.json') : join(homedir(), '.claude.json');
+  const candidates: string[] = [];
+
+  if (dir) {
+    // A relocated config keeps .claude.json inside the directory...
+    candidates.push(join(dir, '.claude.json'));
+    // ...but on a default install the file sits *beside* ~/.claude rather than
+    // in it, and CLAUDE_CONFIG_DIR is often set to ~/.claude anyway. Looking
+    // only inside meant the plan read as unknown on the most common layout of
+    // all, and the cost figure lost its label.
+    candidates.push(join(dir, '..', '.claude.json'));
+  }
+
+  candidates.push(join(homedir(), '.claude.json'));
+  return candidates;
 }
 
 /** Turns `default_claude_max_5x` into `Claude Max 5x`. */
@@ -56,8 +69,8 @@ export function detectPlan(force = false): PlanInfo {
   if (cache && !force) return cache;
 
   const unknown: PlanInfo = { kind: 'unknown', tier: null, label: null };
-  const file = claudeConfigFile();
-  if (!existsSync(file)) {
+  const file = claudeConfigFiles().find((candidate) => existsSync(candidate));
+  if (!file) {
     cache = unknown;
     return cache;
   }
