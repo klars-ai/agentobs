@@ -42,6 +42,14 @@ export interface Summary {
   tokens_out: number;
   avg_duration_ms: number | null;
   /**
+   * How many sessions in this window are coarse (process-wrap: duration and
+   * exit code only). Surfaced so the UI can explain a zero tool-call count
+   * instead of leaving it looking like a broken install - the single most
+   * confusing thing a new user sees.
+   */
+  coarse_sessions: number;
+  rich_sessions: number;
+  /**
    * The immediately preceding window of the same length, so the UI can show a
    * delta. Null for range 'all', which has no "previous" to compare against -
    * a delta there would be meaningless rather than merely unknown.
@@ -110,6 +118,15 @@ export function getSummary(db: DatabaseSync, range: Range): Summary {
     n: number;
   };
 
+  const byFidelity = db
+    .prepare(
+      `SELECT
+         COALESCE(SUM(CASE WHEN fidelity = 'coarse' THEN 1 ELSE 0 END), 0) AS coarse,
+         COALESCE(SUM(CASE WHEN fidelity <> 'coarse' THEN 1 ELSE 0 END), 0) AS rich
+       FROM sessions ${where}`,
+    )
+    .get(...args) as { coarse: number; rich: number };
+
   const toolCalls = Number(calls.tool_calls ?? 0);
   const errors = Number(calls.errors ?? 0);
 
@@ -126,6 +143,8 @@ export function getSummary(db: DatabaseSync, range: Range): Summary {
     tokens_in: Number(calls.tokens_in ?? 0),
     tokens_out: Number(calls.tokens_out ?? 0),
     avg_duration_ms: calls.avg_duration_ms === null ? null : Number(calls.avg_duration_ms),
+    coarse_sessions: Number(byFidelity.coarse ?? 0),
+    rich_sessions: Number(byFidelity.rich ?? 0),
     previous: previousPeriod(db, range, since),
   };
 }

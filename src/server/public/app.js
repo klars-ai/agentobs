@@ -106,6 +106,7 @@ async function refresh() {
       fetchJson('/api/sessions'),
     ]);
 
+    state.summary = summary;
     renderSummary(summary);
     state.timeline = timeline;
     drawTimeline();
@@ -130,8 +131,16 @@ function renderSummary(s) {
   // Say plainly when the cost figure is incomplete, rather than presenting a
   // partial total as if it were the whole spend.
   const note = document.getElementById('hero-note');
-  if (s.tool_calls === 0) {
+  if (s.sessions === 0) {
     note.textContent = 'No activity recorded yet.';
+  } else if (s.tool_calls === 0 && s.coarse_sessions > 0) {
+    // Never say "no activity" while the Sessions tile shows a number - that
+    // contradiction reads as a broken install. Name the reason instead.
+    const n = s.coarse_sessions;
+    note.textContent =
+      `${count(n)} coarse session${n === 1 ? '' : 's'} from "agentobs run" — process-wrap sees duration and exit code, not tool calls or tokens. Connect the Claude Code hook for full detail.`;
+  } else if (s.coarse_sessions > 0 && s.rich_sessions > 0) {
+    note.textContent = `${count(s.coarse_sessions)} of ${count(s.sessions)} sessions are coarse, so they add no tool calls or tokens to these totals.`;
   } else if (s.uncosted_calls > 0) {
     note.textContent = `${count(s.uncosted_calls)} call${s.uncosted_calls === 1 ? '' : 's'} have no price for their model — add it to ~/.agentobs/pricing.json to include them.`;
   } else {
@@ -182,7 +191,11 @@ function renderTools(rows) {
   body.replaceChildren();
   if (rows.length === 0) {
     const tr = document.createElement('tr');
-    tr.append(Object.assign(cell('No tool calls recorded yet.', 'empty'), { colSpan: 5 }));
+    const msg =
+      state.summary && state.summary.coarse_sessions > 0
+        ? 'Coarse sessions record no tool calls — connect the Claude Code hook for per-tool detail.'
+        : 'No tool calls recorded yet.';
+    tr.append(Object.assign(cell(msg, 'empty'), { colSpan: 5 }));
     body.append(tr);
     return;
   }
@@ -328,7 +341,13 @@ function drawTimeline() {
     ctx.fillStyle = muted;
     ctx.font = '13px ' + cssVar('--font');
     ctx.textAlign = 'center';
-    ctx.fillText('No activity in this range', cssWidth / 2, cssHeight / 2);
+    // Distinguish "nothing happened" from "the data here cannot have tool
+    // calls", which is what a coarse-only range actually means.
+    const msg =
+      state.summary && state.summary.coarse_sessions > 0
+        ? 'Coarse sessions record no tool calls'
+        : 'No activity in this range';
+    ctx.fillText(msg, cssWidth / 2, cssHeight / 2);
     return;
   }
 

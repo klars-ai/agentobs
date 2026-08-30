@@ -959,3 +959,21 @@ tbody td:first-child {
 .tile[data-accent='sessions'] .tile-label .i { color: var(--series-3); }
 .tile[data-accent='errors'] .tile-label .i { color: var(--status-critical); }
 .tile[data-accent='blocked'] .tile-label .i { color: var(--status-serious); }
+
+/* The hero note can run to a full explanatory sentence when the data is
+   coarse. Cap its width and keep it under the figure so it wraps tightly
+   instead of stretching the flex row and opening a gap beside the stats. */
+.hero > div:first-child {
+  flex: 1 1 460px;
+  min-width: 0;
+}
+
+.hero-note {
+  max-width: 62ch;
+  line-height: 1.45;
+}
+
+.hero-side {
+  flex: 0 0 auto;
+  align-self: flex-start;
+}

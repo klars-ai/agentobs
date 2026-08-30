@@ -40,6 +40,34 @@ AgentObs · ${range}
   Blocked        ${summary.blocked}
   Tokens         ${summary.tokens_in.toLocaleString()} in / ${summary.tokens_out.toLocaleString()} out`);
 
+  // A zero tool-call count next to a non-zero session count is the single most
+  // confusing thing a new user sees - it reads as a broken install. Say which
+  // integration produced the data and what it can and cannot see.
+  if (summary.tool_calls === 0 && summary.coarse_sessions > 0) {
+    const n = summary.coarse_sessions;
+    console.log(
+      [
+        '',
+        `  Why the zeros: all ${n} session${n === 1 ? '' : 's'} came from "agentobs run"`,
+        '  (process-wrap), which observes a process from the outside - it records',
+        '  duration and exit code, but cannot see individual tool calls or tokens.',
+        '',
+        '  For per-tool-call detail and cost, use the Claude Code hook (see',
+        '  "agentobs init") or ingest a structured log with "agentobs watch".',
+      ].join(String.fromCharCode(10)),
+    );
+  } else if (summary.coarse_sessions > 0 && summary.rich_sessions > 0) {
+    // Mixed data: the totals are real but under-count, since coarse sessions
+    // contribute no tool calls or tokens of their own.
+    console.log(
+      [
+        '',
+        `  Note: ${summary.coarse_sessions} of ${summary.sessions} sessions are coarse (process-wrap),`,
+        '  so they add no tool calls or tokens to these totals.',
+      ].join(String.fromCharCode(10)),
+    );
+  }
+
   // State plainly when the cost total is incomplete rather than letting a
   // partial number read as the whole spend.
   if (summary.uncosted_calls > 0) {
