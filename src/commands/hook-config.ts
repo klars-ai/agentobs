@@ -23,7 +23,32 @@ import { existsSync } from 'node:fs';
  */
 export function hookCommandPath(): string {
   const here = dirname(fileURLToPath(import.meta.url));
-  // dist/commands -> package root
+
+  // On Windows, prefer npm's generated .cmd shim in the global bin directory.
+  //
+  // The raw bin/agentobs-hook file has no extension, and Windows cannot
+  // execute an extensionless file - cmd.exe reports "not recognized as an
+  // internal or external command". Claude Code swallows that, so the hook
+  // silently never runs and no data is ever recorded: the worst possible
+  // failure for an observability tool, because it looks like "no activity"
+  // rather than "broken". npm generates the .cmd shim for exactly this.
+  if (process.platform === 'win32') {
+    // dist/commands -> .../node_modules/@klars/agentobs -> up to the dir
+    // holding npm's shims (node_modules/.bin, or the global npm root).
+    const packageRoot = resolve(here, '..', '..');
+    const shims = [
+      resolve(packageRoot, '..', '..', '..', 'agentobs-hook.cmd'), // global npm root
+      resolve(packageRoot, '..', '..', '.bin', 'agentobs-hook.cmd'), // local node_modules/.bin
+    ];
+    for (const shim of shims) {
+      if (existsSync(shim)) return shim;
+    }
+    // No shim found (e.g. running from a source checkout): fall back to the
+    // bare name so PATH resolution can still find it, rather than emitting a
+    // path that is guaranteed not to execute.
+    return 'agentobs-hook.cmd';
+  }
+
   const candidate = resolve(here, '..', '..', 'bin', 'agentobs-hook');
   if (existsSync(candidate)) return candidate;
   return 'agentobs-hook';
